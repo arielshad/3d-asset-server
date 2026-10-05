@@ -15,6 +15,7 @@ import {
   UnsupportedError,
   errorMessage,
 } from "../core/service.js";
+import { LocalStats, PrometheusStats, cachedStats, teeAnalytics, type StatsSource } from "../core/stats.js";
 import { ASSET_TYPES, type AssetType } from "../core/types.js";
 import { createMcpServer } from "../mcp/server.js";
 import { prefersMarkdown } from "./negotiate.js";
@@ -37,6 +38,11 @@ export interface AppOptions {
   siteRoot?: string;
   /** Per-client limit on /v1/* and /mcp (with RateLimit headers). Off when unset. */
   rateLimit?: RateLimitOptions;
+  /**
+   * Prometheus that scrapes this server's metrics, for /v1/stats over 24 hours
+   * and 7 days. Without it, /v1/stats counts this process since it started.
+   */
+  prometheus?: { url: string; fetch?: typeof fetch };
 }
 
 /** Short, guessable URLs for developer resources. */
@@ -56,7 +62,7 @@ const WEB_CLIENT_HEADER = "x-asset-client";
 
 /** Bounded route label for metrics (never the raw path). */
 function routeLabel(path: string): string {
-  if (path === "/v1/search" || path === "/v1/providers" || path === "/mcp" || path === "/openapi.json" || path === "/health") {
+  if (path === "/v1/search" || path === "/v1/providers" || path === "/v1/stats" || path === "/mcp" || path === "/openapi.json" || path === "/health") {
     return path;
   }
   if (path.startsWith("/v1/assets/")) {
@@ -67,6 +73,12 @@ function routeLabel(path: string): string {
   if (path.startsWith("/v1/")) return "/v1/other";
   if (path.startsWith("/_astro/") || path.startsWith("/scalar/") || path.startsWith("/fonts/")) return "static-asset";
   return "site";
+}
+
+function tally(values: string[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const v of values) out[v] = (out[v] ?? 0) + 1;
+  return out;
 }
 
 const csv = z
@@ -118,7 +130,12 @@ function pageRewrite(route: string, params: URLSearchParams): ServeOptions["rewr
 
 export function createApp(service: AssetService, opts: AppOptions = {}): Hono {
   const app = new Hono();
-  const analytics = opts.analytics ?? noopAnalytics;
+  // Every event also feeds the in-process tallies behind /v1/stats.
+  const localStats = new LocalStats();
+  const analytics = teeAnalytics(opts.analytics ?? noopAnalytics, localStats);
+  const stats: StatsSource = opts.prometheus
+    ? cachedStats(new PrometheusStats({ ...opts.prometheus, fallback: localStats }), 60_000)
+    : localStats;
   const site = Site.load(opts.siteRoot ?? DEFAULT_SITE_ROOT);
   const who = (c: Context): { surface: Surface; client: string } => ({
     surface: c.req.header(WEB_CLIENT_HEADER) === "web" ? "web" : "api",
@@ -229,6 +246,7 @@ export function createApp(service: AssetService, opts: AppOptions = {}): Hono {
       },
       endpoints: {
         providers: "/v1/providers",
+        stats: "/v1/stats",
         search: "/v1/search?q=wooden+chair&type=model&free=true",
         asset: "/v1/assets/{provider}:{id}",
         files: "/v1/assets/{provider}:{id}/files?format=gltf&resolution=2k",
@@ -245,6 +263,21 @@ export function createApp(service: AssetService, opts: AppOptions = {}): Hono {
   app.get("/openapi.json", (c) => c.json(openApiSpec(opts.publicBaseUrl)));
 
   app.get("/v1/providers", (c) => c.json({ providers: service.listProviders() }));
+
+  app.get("/v1/stats", async (c) => {
+    const providers = service.listProviders();
+    const usage = await stats.snapshot();
+    c.header("cache-control", "public, max-age=60");
+    return c.json({
+      ...usage,
+      catalog: {
+        sources: providers.length,
+        directDownload: providers.filter((p) => p.supportsDownload).length,
+        byAccess: tally(providers.map((p) => p.access)),
+        byPricing: tally(providers.map((p) => p.pricing)),
+      },
+    });
+  });
 
   app.get("/v1/search", async (c) => {
     const p = searchParams.parse(c.req.query());

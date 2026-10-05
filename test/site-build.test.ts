@@ -92,5 +92,25 @@ describe.skipIf(!built)("built website", () => {
     for (const schema of ["asset", "assetfile", "searchresponse", "providerreport"]) expect(reference).toContain(`id="schema-${schema}"`);
     expect(read("docs/api/playground/index.html")).toContain('content="noindex, follow"');
   });
+
+  it("publishes a /stats page with a Markdown twin, footer link and llms.txt entry", () => {
+    const html = read("stats/index.html");
+    expect(html).toMatch(/<h1[^>]*>Usage statistics<\/h1>/);
+    expect(html).toContain("StatsDashboard"); // the live island
+    expect(read("sitemap-0.xml")).toContain("https://3d.shep.bot/stats<");
+    expect(read("index.html")).toContain('href="/stats"');
+    expect(read("stats.md")).toContain("/v1/stats");
+    expect(read("llms.txt")).toContain("https://3d.shep.bot/stats.md");
+  });
+
+  it("states the same source count everywhere", async () => {
+    const { allProviders } = await import("../src/providers/index.js");
+    const n = allProviders.length;
+    const files = ["index.html", "docs/index.html", "about.md", "docs/mcp.md", "docs/api.md", "docs/cli.md", "AGENTS.md", "skill/SKILL.md", "llms.txt", "stats/index.html"];
+    const sources = [...files.map((f) => [f, read(f)]), ["README.md", readFileSync(new URL("../README.md", import.meta.url), "utf8")]];
+    for (const [f, body] of sources) {
+      for (const m of body!.matchAll(/\b(\d+) (?:3D )?(?:asset )?sites\b/g)) expect(`${f}: ${m[0]}`).toBe(`${f}: ${m[1] === String(n) ? m[0] : `${n} … sites`}`);
+    }
+  });
 });
 

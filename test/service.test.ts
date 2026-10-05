@@ -17,6 +17,7 @@ import { brotliDecompressSync } from "node:zlib";
 import { assertPublicUrl, downloadFiles, safeRelative, selectFiles } from "../src/core/download.js";
 import { AssetService } from "../src/core/service.js";
 import { createMcpServer } from "../src/mcp/server.js";
+import { allProviders } from "../src/providers/index.js";
 import { fab } from "../src/providers/linked.js";
 import { CRATE, brokenProvider, bytesHttp, fakeProvider, slowProvider } from "./fakes.js";
 
@@ -485,7 +486,7 @@ describe("site security, compression and SEO variants", () => {
     expect(res.headers.get("content-security-policy")).toContain(`'nonce-${nonce}'`);
     expect(res.headers.get("etag")).toBeNull();
     const other = await (await app.request("/search?type=hdri&free=true", html)).text();
-    expect(other).toContain("<title>Free HDRIs: search 17 sites · 3D Asset Server</title>");
+    expect(other).toContain(`<title>Free HDRIs: search ${allProviders.length} sites · 3D Asset Server</title>`);
     const plain = await (await app.request("/search", html)).text();
     expect(plain).toContain("<title>Search free 3D models, textures &amp; HDRIs · 3D Asset Server</title>");
     expect(plain).toContain('content="index, follow"');
@@ -500,7 +501,7 @@ describe("site security, compression and SEO variants", () => {
 
   it("builds search metadata and escapes it into the head", () => {
     expect(searchMeta(new URLSearchParams(""))).toBeUndefined();
-    expect(searchMeta(new URLSearchParams("type=pack&free=true"))!.title).toBe("Free game asset packs: search 17 sites · 3D Asset Server");
+    expect(searchMeta(new URLSearchParams("type=pack&free=true"))!.title).toBe(`Free game asset packs: search ${allProviders.length} sites · 3D Asset Server`);
     const out = rewriteHead('<title>x</title><meta name="description" content="y">', { title: '<b>"t"</b>', description: "d & e" });
     expect(out).toBe('<title>&lt;b&gt;&quot;t&quot;&lt;/b&gt;</title><meta name="description" content="d &amp; e">');
   });

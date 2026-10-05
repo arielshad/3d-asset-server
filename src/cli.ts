@@ -27,6 +27,8 @@ Environment:
   ASSET_SERVER_RATE_LIMIT_WINDOW  Window in seconds (default 60)
   METRICS_PORT                 Serve Prometheus metrics on this port at /metrics and log
                                one JSON line per search/download/tool call (off when unset)
+  PROMETHEUS_URL               Prometheus that scrapes METRICS_PORT; /v1/stats then reports
+                               the last 24 hours and 7 days (default: counts since start)
 `;
 
 function buildService(): AssetService {
@@ -53,6 +55,7 @@ async function main(argv: string[]): Promise<void> {
         publicBaseUrl: process.env.ASSET_SERVER_PUBLIC_URL,
         allowServerDownloads: process.env.ASSET_SERVER_HTTP_DOWNLOADS === "true",
         downloadDir: process.env.ASSET_DOWNLOAD_DIR,
+        prometheus: process.env.PROMETHEUS_URL ? { url: process.env.PROMETHEUS_URL } : undefined,
       });
       serve({ fetch: app.fetch, port, hostname }, (info) => {
         console.log(`3d-asset-server listening on http://${hostname}:${info.port} (MCP at /mcp)`);

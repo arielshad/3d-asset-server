@@ -41,7 +41,8 @@ export function typeLabel(schema?: Json): string {
   if (schema.type === "array") return `${typeLabel(schema.items as Json)}[]`;
   if (Array.isArray(schema.allOf)) return (schema.allOf as Json[]).map(typeLabel).filter(Boolean).join(" & ");
   if (Array.isArray(schema.enum)) return (schema.enum as unknown[]).map((v) => JSON.stringify(v)).join(" | ");
-  return String(schema.type ?? "object") + (schema.format ? ` (${schema.format})` : "");
+  const type = Array.isArray(schema.type) ? (schema.type as string[]).join(" | ") : String(schema.type ?? "object");
+  return type + (schema.format ? ` (${schema.format})` : "");
 }
 
 export function operations(): Operation[] {

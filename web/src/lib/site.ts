@@ -1,3 +1,4 @@
+import integrations from "@/data/integrations.json";
 import organization from "@/data/organization.json";
 import providers from "@/data/providers.json";
 
@@ -8,7 +9,7 @@ export const SITE = {
   tagline: "One search for free 3D models, textures, HDRIs and game assets",
   homeTitle: "3D Asset Server: Search Free 3D Models, Textures & HDRIs",
   description:
-    "Search 17 3D asset sites at once and download free glTF models, CC0 PBR textures and HDRIs with clear licences. Web search, REST API and MCP for AI agents.",
+    `Search ${providers.length} 3D asset sites at once and download free glTF models, CC0 PBR textures and HDRIs with clear licences. Web search, REST API and MCP for AI agents.`,
   repo: "https://github.com/arielshad/3d-asset-server",
   image: "/og.png",
   locale: "en_US",
@@ -30,6 +31,9 @@ export const PROVIDERS: Provider[] = providers;
 export const SOURCE_COUNT = PROVIDERS.length;
 export const DIRECT_DOWNLOAD_COUNT = PROVIDERS.filter((p) => p.supportsDownload).length;
 export const CC0_COUNT = PROVIDERS.filter((p) => p.license?.startsWith("CC0")).length;
+
+/** Sources by date added, newest first (from integrations/registry.json). */
+export const INTEGRATIONS = integrations.integrations;
 
 export const MCP_URL = `${SITE.url}/mcp`;
 

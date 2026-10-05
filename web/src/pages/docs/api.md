@@ -90,6 +90,14 @@ A single self-contained file answers with a `302` redirect to the source CDN (so
 curl "https://3d.shep.bot/v1/providers"
 ```
 
+## Usage statistics and source health
+
+```bash
+curl "https://3d.shep.bot/v1/stats"
+```
+
+Aggregate usage (searches by surface, downloads, MCP tool calls, top clients and asset types) for the last 24 hours and 7 days, plus each source's success rate and p50/p95 latency. Check `providers[]` to see which sources are slow or failing right now. The same data is on the [usage statistics](/stats) page.
+
 ## Examples
 
 ### JavaScript / TypeScript

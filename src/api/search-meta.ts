@@ -5,6 +5,10 @@
  * pages, but their links (to docs and sources) should still be followed.
  */
 
+import { allProviders } from "../providers/index.js";
+
+const SITES = `${allProviders.length} sites`;
+
 const TYPE_LABELS: Record<string, string> = {
   model: "3D models",
   material: "PBR materials",
@@ -27,9 +31,9 @@ export function searchMeta(params: URLSearchParams): { title: string; descriptio
   if (!q && !types.length && !free) return undefined;
   const what = types.length ? types.join(" & ") : "3D assets";
   const kind = `${free ? "free " : ""}${what}`;
-  const title = q ? `“${clip(q, 40)}”: ${kind} · 3D Asset Server` : `${kind[0]!.toUpperCase()}${kind.slice(1)}: search 17 sites · 3D Asset Server`;
+  const title = q ? `“${clip(q, 40)}”: ${kind} · 3D Asset Server` : `${kind[0]!.toUpperCase()}${kind.slice(1)}: search ${SITES} · 3D Asset Server`;
   const description = q
-    ? `Search results for “${clip(q, 60)}” across 17 sites: ${kind} with licences and direct downloads from Poly Haven, ambientCG, Kenney and more.`
-    : `Browse ${kind} from 17 sites at once, including Poly Haven, ambientCG, Kenney and BlenderKit, with licences and one-click downloads.`;
+    ? `Search results for “${clip(q, 60)}” across ${SITES}: ${kind} with licences and direct downloads from Poly Haven, ambientCG, Kenney and more.`
+    : `Browse ${kind} from ${SITES} at once, including Poly Haven, ambientCG, Kenney and BlenderKit, with licences and one-click downloads.`;
   return { title, description, robots: "noindex, follow" };
 }

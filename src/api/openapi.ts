@@ -1,4 +1,5 @@
 import { ASSET_TYPES } from "../core/types.js";
+import { allProviders } from "../providers/index.js";
 
 const DEFAULT_PUBLIC_URL = "https://3d.shep.bot";
 
@@ -66,7 +67,7 @@ export function openApiSpec(baseUrl?: string) {
       version: "0.1.0",
       summary: "One search API for free and paid 3D models, PBR materials, textures, HDRIs and game assets.",
       description: [
-        "Search 17 asset sites at once (Poly Haven, ambientCG, Kenney, BlenderKit, CGTrader, itch.io and more),",
+        `Search ${allProviders.length} asset sites at once (Poly Haven, ambientCG, Kenney, BlenderKit, CGTrader, itch.io and more),`,
         "get licences and file lists, and download glTF/FBX/Blend models, PBR texture maps and HDRIs.",
         "",
         "**Typical flow:** `GET /v1/search` → `GET /v1/assets/{id}` → `GET /v1/assets/{id}/download`.",
@@ -125,6 +126,65 @@ export function openApiSpec(baseUrl?: string) {
       },
       schemas: {
         AssetType: { type: "string", enum: [...ASSET_TYPES] },
+        UsageWindow: {
+          type: "object",
+          required: ["key", "label", "searches", "searchesWithResults", "bySurface", "assetViews", "downloads", "toolCalls", "pageViews"],
+          properties: {
+            key: { type: "string", description: "`24h`, `7d`, or `process` (since the last restart).", example: "24h" },
+            label: { type: "string", example: "Last 24 hours" },
+            searches: { type: "integer" },
+            searchesWithResults: { type: "integer" },
+            bySurface: {
+              type: "object",
+              required: ["web", "api", "mcp"],
+              properties: { web: { type: "integer" }, api: { type: "integer" }, mcp: { type: "integer" } },
+            },
+            assetViews: { type: "integer" },
+            downloads: { type: "integer" },
+            toolCalls: { type: "integer", description: "MCP tool calls." },
+            pageViews: { type: "integer", description: "Website pages served." },
+          },
+        },
+        Ranked: { type: "object", required: ["name", "count"], properties: { name: { type: "string" }, count: { type: "integer" } } },
+        ProviderHealth: {
+          type: "object",
+          required: ["provider", "requests", "ok", "errors", "timeouts", "okRate", "p50Ms", "p95Ms"],
+          properties: {
+            provider: { type: "string", example: "polyhaven" },
+            requests: { type: "integer", description: "Searches that reached the source." },
+            ok: { type: "integer" },
+            errors: { type: "integer" },
+            timeouts: { type: "integer" },
+            okRate: { type: ["number", "null"], minimum: 0, maximum: 1 },
+            p50Ms: { type: ["integer", "null"] },
+            p95Ms: { type: ["integer", "null"] },
+          },
+        },
+        Stats: {
+          type: "object",
+          required: ["generatedAt", "source", "windows", "breakdownLabel", "clients", "tools", "assetTypes", "providers", "catalog"],
+          properties: {
+            generatedAt: { type: "string", format: "date-time" },
+            source: { type: "string", enum: ["prometheus", "process"] },
+            since: { type: "string", format: "date-time", description: "Start of counting for `source: process`." },
+            windows: { type: "array", items: ref("UsageWindow") },
+            breakdownLabel: { type: "string", description: "Period covered by `clients`, `tools` and `assetTypes`.", example: "Last 7 days" },
+            clients: { type: "array", items: ref("Ranked"), description: "Searches by client family (claude-code, cursor, browser, curl…)." },
+            tools: { type: "array", items: ref("Ranked"), description: "MCP tool calls by tool." },
+            assetTypes: { type: "array", items: ref("Ranked"), description: "Searches by asset type filter (`any` = no filter)." },
+            providers: { type: "array", items: ref("ProviderHealth"), description: "Per-source health over the last 24 hours." },
+            catalog: {
+              type: "object",
+              required: ["sources", "directDownload", "byAccess", "byPricing"],
+              properties: {
+                sources: { type: "integer" },
+                directDownload: { type: "integer" },
+                byAccess: { type: "object", additionalProperties: { type: "integer" } },
+                byPricing: { type: "object", additionalProperties: { type: "integer" } },
+              },
+            },
+          },
+        },
         License: {
           type: "object",
           required: ["name"],
@@ -341,6 +401,21 @@ export function openApiSpec(baseUrl?: string) {
               description: "Sources.",
               content: json({ type: "object", required: ["providers"], properties: { providers: { type: "array", items: ref("Provider") } } }),
             },
+          },
+        },
+      },
+      "/v1/stats": {
+        get: {
+          operationId: "getStats",
+          tags: ["Sources"],
+          summary: "Usage statistics",
+          description:
+            "Aggregate usage of this server: searches by surface (web, API, MCP), downloads, MCP tool calls, the client families " +
+            "and asset types searched most, and per-source health (success rate, p50/p95 latency). Counts come from Prometheus " +
+            "(`source: prometheus`, last 24 hours and 7 days) or, when it is unavailable, from this process since it started " +
+            "(`source: process`). No queries, IPs or user agents are exposed. Cached for 60 seconds.",
+          responses: {
+            200: { description: "Usage statistics.", content: json(ref("Stats")) },
           },
         },
       },

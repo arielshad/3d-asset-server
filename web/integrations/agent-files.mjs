@@ -47,6 +47,29 @@ function sourcesMarkdown(providers) {
   ].join("\n");
 }
 
+function statsMarkdown(providers, integrations, site) {
+  const recent = integrations.slice(0, 6).map((i) => `- [${i.name}](${i.homepage}) (\`${i.id}\`), added ${i.addedAt}`);
+  return [
+    "# Usage statistics",
+    "",
+    `Live usage of 3D Asset Server and the health of its ${providers.length} sources. The numbers change every minute, so read them as JSON from \`GET ${site}/v1/stats\` (schema \`Stats\` in ${site}/openapi.json):`,
+    "",
+    "- `windows[]`: searches (by surface: `web`, `api`, `mcp`), searches with results, asset views, downloads, MCP tool calls and page views for the last 24 hours and 7 days (`source: prometheus`), or since the last restart (`source: process`).",
+    "- `clients`, `assetTypes`, `tools`: what was searched most, by client family, asset type filter and MCP tool.",
+    "- `providers[]`: per-source success rate and p50/p95 latency over the last 24 hours. Use it to see which sources are slow or failing right now.",
+    "- `catalog`: number of sources, how many allow direct downloads, by access method and pricing.",
+    "",
+    "Counts are anonymous totals: no search terms, IP addresses or user agents.",
+    "",
+    "## Recently added sources",
+    "",
+    ...recent,
+    "",
+    `All sources: ${site}/docs/sources.md`,
+    "",
+  ].join("\n");
+}
+
 export default function agentFiles() {
   let site = "https://3d.shep.bot";
   return {
@@ -83,7 +106,11 @@ export default function agentFiles() {
         write("docs/sources.md", `${sources}\n---\nSource: ${site}/docs/sources\n`);
         docs.push({ route: "/docs/sources", title: "Sources & licences", description: `The ${providers.length} sites searched, with licences.`, md: sources });
 
-        const order = ["/docs", "/docs/mcp", "/docs/api", "/docs/api/versioning", "/docs/sources", "/docs/cli", "/docs/self-hosting", "/about", "/contact", "/privacy"];
+        const stats = statsMarkdown(providers, JSON.parse(read("src/data/integrations.json")).integrations, site);
+        write("stats.md", `${stats}\n---\nSource: ${site}/stats\n`);
+        docs.push({ route: "/stats", title: "Usage statistics", description: "Live usage (searches, downloads, MCP tool calls) and per-source health; JSON at /v1/stats.", md: stats });
+
+        const order = ["/docs", "/docs/mcp", "/docs/api", "/docs/api/versioning", "/docs/sources", "/docs/cli", "/docs/self-hosting", "/about", "/stats", "/contact", "/privacy"];
         const rank = (r) => (order.indexOf(r) === -1 ? order.length : order.indexOf(r));
         docs.sort((a, b) => rank(a.route) - rank(b.route));
         const docPages = docs.filter((d) => d.route.startsWith("/docs"));
