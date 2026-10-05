@@ -85,6 +85,44 @@ export class Site {
     for (const route of this.files.keys()) this.folded.set(route.toLowerCase(), route);
   }
 
+  /** True when `route` is an HTML page (the routes that negotiate HTML vs Markdown). */
+  isPage(route: string): boolean {
+    return Boolean(this.files.get(route)?.page);
+  }
+
+  /**
+   * Markdown 404 for agents that ask for `text/markdown`: says what went wrong
+   * and where to go instead (agent guide, llms.txt, docs, sitemap, OpenAPI).
+   */
+  markdownNotFound(path: string, origin: string): SiteFile {
+    const base = origin.replace(/\/$/, "");
+    const shown = path.replace(/[`\r\n]/g, "").slice(0, 200);
+    const body = [
+      "# 404: page not found",
+      "",
+      `There is no page at \`${shown}\` on 3D Asset Server (${base}). The address may be mistyped, or the page moved.`,
+      "",
+      "Where to go instead:",
+      "",
+      `- [Agent guide (AGENTS.md)](${base}/AGENTS.md): how to search and download 3D assets with this service`,
+      `- [llms.txt](${base}/llms.txt): index of every page as Markdown`,
+      `- [Docs](${base}/docs): quick start, MCP setup, REST API guide`,
+      `- [Sitemap](${base}/sitemap-index.xml)`,
+      `- [OpenAPI 3.1](${base}/openapi.json): the REST API (\`GET /v1/search?q=...\`)`,
+      "",
+    ].join("\n");
+    return {
+      status: 404,
+      body: Buffer.from(body),
+      headers: {
+        "content-type": "text/markdown; charset=utf-8",
+        "cache-control": "no-store",
+        vary: "Accept",
+        "x-content-type-options": "nosniff",
+      },
+    };
+  }
+
   /**
    * Markdown twin of a page, for agents that ask for `text/markdown`:
    * `/` -> /AGENTS.md, `/docs/mcp` -> /docs/mcp.md.

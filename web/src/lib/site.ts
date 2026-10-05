@@ -1,3 +1,4 @@
+import organization from "@/data/organization.json";
 import providers from "@/data/providers.json";
 
 export const SITE = {
@@ -11,6 +12,17 @@ export const SITE = {
   repo: "https://github.com/arielshad/3d-asset-server",
   image: "/og.png",
   locale: "en_US",
+};
+
+/** Who runs the site. Fill `email` / `address` in organization.json to publish them. */
+export const ORG = organization as {
+  name: string;
+  url: string;
+  contactUrl: string;
+  issuesUrl: string;
+  securityUrl: string;
+  email: string | null;
+  address: { streetAddress?: string; addressLocality?: string; postalCode?: string; addressRegion?: string; addressCountry: string } | null;
 };
 
 export type Provider = (typeof providers)[number];
@@ -37,12 +49,14 @@ export const DOCS_NAV = [
       { href: "/docs/mcp", label: "Coding agents & MCP" },
       { href: "/docs/api", label: "REST API guide" },
       { href: "/docs/api/reference", label: "API reference" },
+      { href: "/docs/cli", label: "CLI" },
     ],
   },
   {
     title: "Reference",
     items: [
       { href: "/docs/sources", label: "Sources & licences" },
+      { href: "/docs/api/versioning", label: "Versioning & rate limits" },
       { href: "/docs/self-hosting", label: "Self-hosting" },
       { href: "/AGENTS.md", label: "AGENTS.md (for agents)" },
       { href: "/llms.txt", label: "llms.txt" },

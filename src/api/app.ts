@@ -16,7 +16,9 @@ import {
 } from "../core/service.js";
 import { ASSET_TYPES, type AssetType } from "../core/types.js";
 import { createMcpServer } from "../mcp/server.js";
+import { prefersMarkdown } from "./negotiate.js";
 import { openApiSpec } from "./openapi.js";
+import { RATE_LIMIT_HEADERS, rateLimit, type RateLimitOptions } from "./ratelimit.js";
 import { Site } from "./site.js";
 
 export interface AppOptions {
@@ -31,7 +33,19 @@ export interface AppOptions {
   analytics?: Analytics;
   /** Built website root (web/dist copied to dist/web). Defaults to ../web next to this file. */
   siteRoot?: string;
+  /** Per-client limit on /v1/* and /mcp (with RateLimit headers). Off when unset. */
+  rateLimit?: RateLimitOptions;
 }
+
+/** Short, guessable URLs for developer resources. */
+const ALIASES: Record<string, string> = {
+  "/api": "/docs/api",
+  "/api-docs": "/docs/api/reference",
+  "/reference": "/docs/api/reference",
+  "/developers": "/docs",
+  "/about-us": "/about",
+  "/privacy-policy": "/privacy",
+};
 
 const DEFAULT_SITE_ROOT = fileURLToPath(new URL("../web", import.meta.url));
 
@@ -98,7 +112,12 @@ export function createApp(service: AssetService, opts: AppOptions = {}): Hono {
   // Gzip/deflate text responses (pages, JSON, JS). Zip downloads are not
   // compressible types, so they stream through untouched.
   app.use("*", compress());
-  app.use("*", cors({ origin: "*", exposeHeaders: ["mcp-session-id"] }));
+  app.use("*", cors({ origin: "*", exposeHeaders: ["mcp-session-id", ...RATE_LIMIT_HEADERS] }));
+  if (opts.rateLimit && opts.rateLimit.limit > 0) {
+    const limiter = rateLimit(opts.rateLimit);
+    app.use("/v1/*", limiter);
+    app.use("/mcp", limiter);
+  }
 
   if (opts.apiKey) {
     const key = opts.apiKey;
@@ -123,24 +142,37 @@ export function createApp(service: AssetService, opts: AppOptions = {}): Hono {
     return c.json({ error: errorMessage(err) }, 500);
   });
 
-  /** Serve a site file (or the HTML 404); undefined when there is no site or no match. */
+  /**
+   * Serve a site file, or the 404 page; undefined when there is no site.
+   * Pages negotiate HTML vs Markdown on Accept (`/` -> /AGENTS.md, `/docs/mcp`
+   * -> /docs/mcp.md) and say so with `Vary: Accept`; unknown paths answer a
+   * Markdown 404 to agents and the HTML 404 page to browsers.
+   */
   const serveSite = (c: Context, path: string): Response | undefined => {
-    // Agents that ask for markdown get the page's markdown twin (/ -> /AGENTS.md).
-    if (site && c.req.header("accept")?.includes("text/markdown")) {
-      const twin = site.markdownFor(path.length > 1 ? path.replace(/\/+$/, "") : path);
-      if (twin) path = twin;
+    if (!site) return undefined;
+    const markdown = prefersMarkdown(c.req.header("accept"));
+    const route = path.length > 1 ? path.replace(/\/+$/, "") : path;
+    const negotiated = site.isPage(route);
+    const twin = markdown && negotiated ? site.markdownFor(route) : undefined;
+    let hit = site.resolve(twin ?? path, c.req.header("if-none-match"));
+    if (markdown && (!hit || ("status" in hit && hit.status === 404))) {
+      hit = site.markdownNotFound(path, opts.publicBaseUrl ?? new URL(c.req.url).origin);
     }
-    const hit = site?.resolve(path, c.req.header("if-none-match"));
     if (!hit) return undefined;
     if ("redirect" in hit) return c.redirect(hit.redirect + (new URL(c.req.url).search || ""), 301);
+    const headers = { ...hit.headers };
+    if (negotiated) headers.vary = "Accept";
     if (hit.page && hit.status === 200) analytics.pageView({ page: hit.page });
-    if (c.req.method === "HEAD") return new Response(null, { status: hit.status, headers: hit.headers });
-    return new Response(hit.status === 304 ? null : new Uint8Array(hit.body), { status: hit.status, headers: hit.headers });
+    else if (twin && hit.status === 200) analytics.pageView({ page: `${route} (markdown)` });
+    if (c.req.method === "HEAD") return new Response(null, { status: hit.status, headers });
+    return new Response(hit.status === 304 ? null : new Uint8Array(hit.body), { status: hit.status, headers });
   };
 
   app.get("/", (c) => {
     const accept = c.req.header("accept") ?? "";
     if (site && (accept.includes("text/html") || accept.includes("text/markdown"))) return serveSite(c, "/")!;
+    // The same URL serves HTML, Markdown or this JSON index depending on Accept.
+    c.header("vary", "Accept");
     return c.json({
       name: "3d-asset-server",
       description: "Search and download 3D models, materials, textures, HDRIs and game assets across many sources.",
@@ -237,6 +269,13 @@ export function createApp(service: AssetService, opts: AppOptions = {}): Hono {
     });
   });
 
+  // Opening the MCP URL in a browser leads to the setup guide instead of a JSON-RPC error.
+  app.get("/mcp", async (c, next) => {
+    const accept = c.req.header("accept") ?? "";
+    if (accept.includes("text/html") && !accept.includes("text/event-stream")) return c.redirect("/docs/mcp", 302);
+    await next();
+  });
+
   // MCP over Streamable HTTP, stateless: a fresh server+transport per request.
   app.all("/mcp", async (c) => {
     const server = createMcpServer(service, {
@@ -260,9 +299,12 @@ export function createApp(service: AssetService, opts: AppOptions = {}): Hono {
   // Everything else is the website (pages, /_astro assets, robots.txt, sitemap, llms.txt, ...).
   app.on(["GET", "HEAD"], "*", (c) => {
     if (c.req.path.startsWith("/v1/")) return c.json({ error: "not found" }, 404);
+    const alias = ALIASES[c.req.path.replace(/\/+$/, "").toLowerCase()];
+    if (alias) return c.redirect(alias, 301);
     return serveSite(c, c.req.path) ?? c.json({ error: "not found" }, 404);
   });
-  app.notFound((c) => c.json({ error: "not found" }, 404));
+  // Paths the router can't match (e.g. with encoded control characters) get the same 404 treatment.
+  app.notFound((c) => (c.req.path.startsWith("/v1/") ? undefined : serveSite(c, c.req.path)) ?? c.json({ error: "not found" }, 404));
 
   return app;
 }

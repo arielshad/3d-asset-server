@@ -231,9 +231,12 @@ Point an agent at `https://3d.shep.bot` and it finds its way:
 | `/skill/SKILL.md` | A Claude Code skill (`~/.claude/skills/3d-assets/SKILL.md`) |
 | `/openapi.json` | OpenAPI 3.1 |
 
-Requests with `Accept: text/markdown` get markdown instead of HTML (`/` → `/AGENTS.md`), every page
-advertises its twin with `Link: <…>; rel="alternate"; type="text/markdown"`, and `curl
-https://3d.shep.bot` returns a JSON index that points at all of the above.
+Requests with `Accept: text/markdown` get markdown instead of HTML (`/` → `/AGENTS.md`, sent with
+`Vary: Accept`), unknown paths answer agents with a Markdown 404 that links to the docs, `llms.txt` and
+the sitemap, every page advertises its twin with `Link: <…>; rel="alternate"; type="text/markdown"`,
+and `curl https://3d.shep.bot` returns a JSON index that points at all of the above. `/about`,
+`/contact` and `/privacy` describe who runs the service and what it records; `/docs/api/versioning`
+is the versioning, deprecation and rate-limit policy.
 
 ---
 
@@ -441,6 +444,8 @@ Safety:
 | `ASSET_SERVER_USER_AGENT` | `3d-asset-server/0.1` | User-Agent sent to the sites |
 | `BLENDERKIT_API_KEY` | – | Optional; unlocks plan and purchased BlenderKit assets |
 | `NODE_USE_ENV_PROXY` | – | Set to `1` so Node's `fetch` uses `HTTPS_PROXY` |
+| `ASSET_SERVER_RATE_LIMIT` | `120` | Requests per client per window on `/v1/*` and `/mcp`; responses carry `RateLimit-Policy` / `RateLimit` (+ `RateLimit-Limit/Remaining/Reset`), and `429` adds `Retry-After`. `0` = off |
+| `ASSET_SERVER_RATE_LIMIT_WINDOW` | `60` | Rate-limit window in seconds |
 | `METRICS_PORT` | – | Serve Prometheus metrics on this port at `/metrics` and log one JSON line per search, download and MCP tool call (see below) |
 
 > If you set `ASSET_SERVER_API_KEY` on a public server, note that `?api_key=` (used by the web UI's

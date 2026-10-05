@@ -5,7 +5,7 @@ crumb: Self-hosting
 description: Run your own 3D Asset Server with Docker or Node.js, protect it with an API key, enable BlenderKit, and expose Prometheus metrics.
 ---
 
-# Self-hosting
+# Self-hosting 3D Asset Server
 
 3D Asset Server is open source (Apache-2.0). Run your own copy to put it behind your own key, enable more sources, or let the MCP server write files to a shared disk.
 
@@ -38,6 +38,8 @@ npm start
 | `ASSET_DOWNLOAD_DIR` | `./assets` | Where MCP downloads go. |
 | `ASSET_SERVER_PROVIDER_TIMEOUT_MS` | `12000` | Per-source search timeout. |
 | `BLENDERKIT_API_KEY` | none | Unlocks plan and purchased BlenderKit assets. |
+| `ASSET_SERVER_RATE_LIMIT` | `120` | Requests per client per window on `/v1/*` and `/mcp`, with RateLimit headers and `429` + `Retry-After` beyond it. `0` turns it off. |
+| `ASSET_SERVER_RATE_LIMIT_WINDOW` | `60` | Rate-limit window in seconds. |
 | `METRICS_PORT` | off | Serve Prometheus metrics on this port at `/metrics`, and log one JSON line per search, download and tool call. |
 
 ## Analytics

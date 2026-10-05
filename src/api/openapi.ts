@@ -59,7 +59,7 @@ export function openApiSpec(baseUrl?: string) {
     score: 0.92,
   };
 
-  return {
+  const spec = {
     openapi: "3.1.0",
     info: {
       title: "3D Asset Server API",
@@ -76,11 +76,20 @@ export function openApiSpec(baseUrl?: string) {
         "",
         "**For AI agents:** the same capabilities are exposed as MCP tools at `/mcp` (Streamable HTTP).",
         "See [Use with coding agents](/docs/mcp).",
+        "",
+        "**Rate limits:** 120 requests per minute per client on `/v1/*` and `/mcp`. Every response carries",
+        "`RateLimit-Policy` and `RateLimit` (IETF RateLimit header fields) plus `RateLimit-Limit`,",
+        "`RateLimit-Remaining` and `RateLimit-Reset`; a `429` adds `Retry-After` (seconds).",
+        "",
+        "**Versioning:** the major version is in the path (`/v1`). Breaking changes only ship in a new major",
+        "version; deprecated endpoints announce themselves with `Deprecation` and `Sunset` headers at least",
+        "90 days ahead. See [Versioning & deprecation](/docs/api/versioning).",
       ].join("\n"),
       contact: { name: "3D Asset Server", url: "https://github.com/arielshad/3d-asset-server" },
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
     },
     externalDocs: { description: "Guides: quick start, MCP setup, API usage", url: `${server}/docs` },
+    "x-api-lifecycle": { versioning: "path (/v1)", deprecationPolicy: `${server}/docs/api/versioning`, minimumSunsetNoticeDays: 90 },
     servers: [{ url: server, description: "This server" }],
     tags: [
       { name: "Search", description: "Find assets across every source in one call." },
@@ -94,6 +103,25 @@ export function openApiSpec(baseUrl?: string) {
       securitySchemes: {
         bearer: { type: "http", scheme: "bearer", description: "Only when the server sets ASSET_SERVER_API_KEY." },
         apiKey: { type: "apiKey", in: "header", name: "x-api-key", description: "Same key, as a header." },
+      },
+      headers: {
+        RateLimit: { description: 'Current quota, e.g. `"default";r=117;t=42` (r = requests remaining, t = seconds until reset).', schema: { type: "string" } },
+        "RateLimit-Policy": { description: 'Quota policy, e.g. `"default";q=120;w=60` (q = requests per window, w = window seconds).', schema: { type: "string" } },
+        "RateLimit-Limit": { description: "Requests allowed per window.", schema: { type: "integer" } },
+        "RateLimit-Remaining": { description: "Requests left in the current window.", schema: { type: "integer" } },
+        "RateLimit-Reset": { description: "Seconds until the window resets.", schema: { type: "integer" } },
+        "Retry-After": { description: "Seconds to wait before retrying (on 429).", schema: { type: "integer" } },
+      },
+      responses: {
+        TooManyRequests: {
+          description: "Rate limit exceeded. Wait `Retry-After` seconds.",
+          headers: {
+            "Retry-After": { $ref: "#/components/headers/Retry-After" },
+            RateLimit: { $ref: "#/components/headers/RateLimit" },
+            "RateLimit-Policy": { $ref: "#/components/headers/RateLimit-Policy" },
+          },
+          content: json(ref("Error"), { error: "Rate limit exceeded: 120 requests per 60s. Retry after 12s.", retryAfter: 12 }),
+        },
       },
       schemas: {
         AssetType: { type: "string", enum: [...ASSET_TYPES] },
@@ -223,7 +251,7 @@ export function openApiSpec(baseUrl?: string) {
         Error: {
           type: "object",
           required: ["error"],
-          properties: { error: { type: "string" }, url: { type: "string", format: "uri" } },
+          properties: { error: { type: "string" }, url: { type: "string", format: "uri" }, retryAfter: { type: "integer" } },
         },
       },
     },
@@ -354,4 +382,18 @@ export function openApiSpec(baseUrl?: string) {
       },
     },
   };
+
+  // Every rate-limited operation documents its headers and the 429 response.
+  const limited = { 429: { $ref: "#/components/responses/TooManyRequests" } };
+  const rateHeaders = Object.fromEntries(
+    ["RateLimit", "RateLimit-Policy", "RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset"].map((h) => [h, { $ref: `#/components/headers/${h}` }]),
+  );
+  for (const [path, item] of Object.entries(spec.paths)) {
+    if (!path.startsWith("/v1/") && path !== "/mcp") continue;
+    for (const op of Object.values(item) as { responses: Record<string, Record<string, unknown>> }[]) {
+      for (const res of Object.values(op.responses)) if (!("$ref" in res)) res.headers = { ...(res.headers as object), ...rateHeaders };
+      Object.assign(op.responses, limited);
+    }
+  }
+  return spec;
 }

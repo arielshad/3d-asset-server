@@ -83,9 +83,15 @@ export default function agentFiles() {
         write("docs/sources.md", `${sources}\n---\nSource: ${site}/docs/sources\n`);
         docs.push({ route: "/docs/sources", title: "Sources & licences", description: `The ${providers.length} sites searched, with licences.`, md: sources });
 
-        const order = ["/docs", "/docs/mcp", "/docs/api", "/docs/sources", "/docs/self-hosting"];
-        docs.sort((a, b) => order.indexOf(a.route) - order.indexOf(b.route));
+        const order = ["/docs", "/docs/mcp", "/docs/api", "/docs/api/versioning", "/docs/sources", "/docs/cli", "/docs/self-hosting", "/about", "/contact", "/privacy"];
+        const rank = (r) => (order.indexOf(r) === -1 ? order.length : order.indexOf(r));
+        docs.sort((a, b) => rank(a.route) - rank(b.route));
+        const docPages = docs.filter((d) => d.route.startsWith("/docs"));
+        const sitePages = docs.filter((d) => !d.route.startsWith("/docs"));
+        const listItem = (d) => `- [${d.title}](${site}${d.route}.md): ${d.description}`;
 
+        // llmstxt.org format: H1, blockquote summary, free-form Markdown with no
+        // headings (the when-to-use guidance), then H2 sections of link lists.
         write(
           "llms.txt",
           [
@@ -93,24 +99,40 @@ export default function agentFiles() {
             "",
             `> Free search engine, REST API and MCP server for 3D assets. One query searches ${providers.length} sites (Poly Haven, ambientCG, Kenney, BlenderKit, CGTrader, itch.io and more) for 3D models, PBR materials, textures, HDRIs and game asset packs, returns each asset's licence, and downloads glTF/FBX/Blend models, texture maps and HDR/EXR files. No account or API key needed.`,
             "",
-            `AI agents: read ${site}/AGENTS.md first. MCP endpoint: ${site}/mcp (Streamable HTTP). Claude Code: \`claude mcp add --transport http 3d-assets ${site}/mcp\`.`,
+            "**When to use 3D Asset Server.** Use it when a user or task needs existing 3D assets:",
+            "",
+            "- finding a 3D model, game asset pack or sprite set for a project (\"low-poly tree\", \"sci-fi crate\");",
+            "- getting PBR textures/materials (\"mossy rock\", \"brick wall\") as color, normal, roughness and AO maps at 1k-8k;",
+            "- getting an HDRI / environment map (\"sunset\", \"studio\") as HDR or EXR;",
+            "- downloading those files into a codebase for Three.js, Babylon.js, React Three Fiber, Godot, Unity, Unreal, Blender or a website;",
+            "- checking whether an asset's licence allows commercial use or requires attribution.",
+            "",
+            "Do not use it to generate new models or textures, to buy paid assets (paid results link to their store), or for non-3D stock photos and video.",
+            "",
+            `**How to call it.** MCP (preferred): add \`${site}/mcp\` (Streamable HTTP, no auth), e.g. \`claude mcp add --transport http 3d-assets ${site}/mcp\`, then call \`search_assets\` → \`get_asset\` → download its \`bundleUrl\`. REST: \`GET ${site}/v1/search?q=...&type=model&free=true\` → \`GET /v1/assets/{id}\` → \`GET /v1/assets/{id}/download?format=glb&resolution=2k\`. Limits: 120 requests/minute per client (RateLimit headers, 429 + Retry-After). Full agent guide: ${site}/AGENTS.md`,
             "",
             "## Docs",
             "",
-            `- [Agent guide](${site}/AGENTS.md): how an AI agent should search, choose and download assets`,
-            ...docs.map((d) => `- [${d.title}](${site}${d.route}.md): ${d.description}`),
+            `- [Agent guide](${site}/AGENTS.md): when to use the service and how an AI agent should search, choose and download assets`,
+            ...docPages.map(listItem),
             "",
             "## API",
             "",
-            `- [OpenAPI 3.1](${site}/openapi.json): machine-readable REST API description`,
+            `- [OpenAPI 3.1](${site}/openapi.json): machine-readable REST API description (rate-limit headers, 429 responses, schemas)`,
             `- [API reference](${site}/docs/api/reference): interactive reference`,
+            `- [MCP endpoint](${site}/mcp): Streamable HTTP; tools search_assets, get_asset, list_providers`,
             `- [Search endpoint](${site}/v1/search?q=wooden+chair&type=model&free=true): example search`,
+            "",
+            "## About",
+            "",
+            ...sitePages.map(listItem),
             "",
             "## Optional",
             "",
             `- [Claude Code skill](${site}/skill/SKILL.md): drop into ~/.claude/skills/3d-assets/SKILL.md`,
             `- [Everything in one file](${site}/llms-full.txt)`,
             `- [Web search](${site}/search)`,
+            `- [Sitemap](${site}/sitemap-index.xml)`,
             "",
           ].join("\n"),
         );

@@ -8,6 +8,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createApp } from "../src/api/app.js";
 import { PrometheusAnalytics } from "../src/core/analytics.js";
+import { prefersMarkdown } from "../src/api/negotiate.js";
+import { openApiSpec } from "../src/api/openapi.js";
 import { assertPublicUrl, downloadFiles, safeRelative, selectFiles } from "../src/core/download.js";
 import { AssetService } from "../src/core/service.js";
 import { createMcpServer } from "../src/mcp/server.js";
@@ -151,6 +153,61 @@ describe("HTTP API", () => {
     expect(await (await app.request("/llms.txt")).text()).toContain("3D Asset Server");
   });
 
+  it("negotiates Markdown vs HTML on the homepage with Vary: Accept", async () => {
+    const md = await app.request("/", { headers: { accept: "text/markdown" } });
+    expect(md.status).toBe(200);
+    expect(md.headers.get("content-type")).toContain("text/markdown");
+    expect(md.headers.get("vary")).toContain("Accept");
+    expect((await md.text()).length).toBeGreaterThan(0);
+    const html = await app.request("/", { headers: { accept: "text/html" } });
+    expect(html.headers.get("content-type")).toContain("text/html");
+    expect(html.headers.get("vary")).toContain("Accept");
+    const json = await app.request("/");
+    expect(json.headers.get("vary")).toContain("Accept");
+    const twin = await app.request("/docs/mcp", { headers: { accept: "text/markdown" } });
+    expect(twin.headers.get("content-type")).toContain("text/markdown");
+    expect(twin.headers.get("vary")).toContain("Accept");
+    // A client that ranks HTML above Markdown gets HTML.
+    const ranked = await app.request("/", { headers: { accept: "text/markdown;q=0.5, text/html" } });
+    expect(ranked.headers.get("content-type")).toContain("text/html");
+  });
+
+  it("answers unknown paths with a Markdown 404 for agents and HTML for browsers", async () => {
+    const md = await app.request("/__ora-404-probe", { headers: { accept: "text/markdown" } });
+    expect(md.status).toBe(404);
+    expect(md.headers.get("content-type")).toContain("text/markdown");
+    expect(md.headers.get("vary")).toContain("Accept");
+    const body = await md.text();
+    expect(body.length).toBeGreaterThan(20);
+    expect(body).toContain("/llms.txt");
+    expect(body).toContain("/sitemap-index.xml");
+    expect(body).toContain("/__ora-404-probe");
+    const html = await app.request("/__ora-404-probe", { headers: { accept: "text/html" } });
+    expect(html.status).toBe(404);
+    expect(html.headers.get("content-type")).toContain("text/html");
+    // Hostile paths can't break out of the inline code span.
+    const hostile = await app.request("/a%60%0A%23injected", { headers: { accept: "text/markdown" } });
+    expect(hostile.status).toBe(404);
+    expect(hostile.headers.get("content-type")).toContain("text/markdown");
+    expect(await hostile.text()).not.toMatch(/\n#\s*injected/);
+    const backtick = await (await app.request("/x`y", { headers: { accept: "text/markdown" } })).text();
+    expect(backtick).toContain("`/xy`");
+    // API paths keep JSON errors.
+    const api = await app.request("/v1/nope", { headers: { accept: "text/markdown" } });
+    expect(api.headers.get("content-type")).toContain("application/json");
+  });
+
+  it("redirects predictable developer URLs and browser visits to /mcp", async () => {
+    for (const [from, to] of [["/api", "/docs/api"], ["/developers", "/docs"], ["/reference", "/docs/api/reference"], ["/privacy-policy", "/privacy"]]) {
+      const res = await app.request(from!);
+      expect(res.status).toBe(301);
+      expect(res.headers.get("location")).toBe(to);
+    }
+    const browser = await app.request("/mcp", { headers: { accept: "text/html,application/xhtml+xml" } });
+    expect(browser.status).toBe(302);
+    expect(browser.headers.get("location")).toBe("/docs/mcp");
+  });
+
   it("serves site pages with canonical URLs, caching and a 404 page", async () => {
     expect((await app.request("/docs/mcp")).status).toBe(200);
     const slash = await app.request("/docs/mcp/?x=1");
@@ -279,3 +336,81 @@ describe("MCP tools", () => {
     expect(r.isError).toBe(true);
   });
 });
+
+describe("content negotiation", () => {
+  it("prefers Markdown only when ranked at least as high as HTML", () => {
+    expect(prefersMarkdown("text/markdown")).toBe(true);
+    expect(prefersMarkdown("text/markdown, text/html;q=0.9")).toBe(true);
+    expect(prefersMarkdown("text/html, text/markdown")).toBe(true);
+    expect(prefersMarkdown("text/markdown;q=0.5, text/html")).toBe(false);
+    expect(prefersMarkdown("text/markdown;q=0")).toBe(false);
+    expect(prefersMarkdown("text/html,application/xhtml+xml,*/*;q=0.8")).toBe(false);
+    expect(prefersMarkdown(undefined)).toBe(false);
+  });
+});
+
+describe("rate limiting", () => {
+  const make = (limit = 3) => {
+    let now = 1_000_000;
+    const app = createApp(service(), { siteRoot: SITE, rateLimit: { limit, windowSec: 60, now: () => now } });
+    return { app, tick: (s: number) => (now += s * 1000) };
+  };
+  const from = (ip: string) => ({ headers: { "x-forwarded-for": `${ip}, 10.42.0.7` } });
+
+  it("sends RateLimit headers and 429 + Retry-After past the limit", async () => {
+    const { app } = make(3);
+    const first = await app.request("/v1/providers", from("203.0.113.1"));
+    expect(first.status).toBe(200);
+    expect(first.headers.get("ratelimit-policy")).toBe('"default";q=3;w=60');
+    expect(first.headers.get("ratelimit")).toBe('"default";r=2;t=60');
+    expect(first.headers.get("ratelimit-limit")).toBe("3");
+    expect(first.headers.get("ratelimit-remaining")).toBe("2");
+    expect(first.headers.get("ratelimit-reset")).toBe("60");
+    expect(first.headers.get("access-control-expose-headers")).toContain("RateLimit");
+    await app.request("/v1/providers", from("203.0.113.1"));
+    await app.request("/v1/providers", from("203.0.113.1"));
+    const over = await app.request("/v1/providers", from("203.0.113.1"));
+    expect(over.status).toBe(429);
+    expect(over.headers.get("retry-after")).toBe("60");
+    expect(over.headers.get("ratelimit-remaining")).toBe("0");
+    expect(((await over.json()) as { retryAfter: number }).retryAfter).toBe(60);
+  });
+
+  it("counts clients separately, resets per window and leaves pages and health alone", async () => {
+    const { app, tick } = make(1);
+    expect((await app.request("/v1/providers", from("203.0.113.1"))).status).toBe(200);
+    expect((await app.request("/v1/providers", from("203.0.113.1"))).status).toBe(429);
+    expect((await app.request("/v1/providers", from("203.0.113.2"))).status).toBe(200);
+    tick(61);
+    expect((await app.request("/v1/providers", from("203.0.113.1"))).status).toBe(200);
+    for (let i = 0; i < 3; i++) {
+      expect((await app.request("/health", from("203.0.113.1"))).status).toBe(200);
+      expect((await app.request("/docs/mcp", from("203.0.113.1"))).status).toBe(200);
+    }
+  });
+
+  it("limits the MCP endpoint too", async () => {
+    const { app } = make(1);
+    const call = () =>
+      app.request("/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "x-forwarded-for": "198.51.100.9" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      });
+    expect((await call()).status).toBe(200);
+    expect((await call()).status).toBe(429);
+  });
+
+  it("is documented in the OpenAPI spec with a versioning policy", () => {
+    const spec = openApiSpec() as unknown as {
+      paths: Record<string, Record<string, { responses: Record<string, { headers?: Record<string, unknown> }> }>>;
+      "x-api-lifecycle": { deprecationPolicy: string };
+    };
+    expect(spec.paths["/v1/search"]!.get!.responses["429"]).toBeDefined();
+    expect(spec.paths["/v1/search"]!.get!.responses["200"]!.headers).toHaveProperty("RateLimit");
+    expect(spec.paths["/mcp"]!.post!.responses["429"]).toBeDefined();
+    expect(spec.paths["/health"]!.get!.responses["429"]).toBeUndefined();
+    expect(spec["x-api-lifecycle"].deprecationPolicy).toContain("/docs/api/versioning");
+  });
+});
+
