@@ -59,4 +59,38 @@ describe.skipIf(!built)("built website", () => {
     expect(home).toMatch(/<title>3D Asset Server[^<]*<\/title>/);
     expect(home.match(/<h1[\s\S]*?<\/h1>/)![0]).toContain("3D Asset Server");
   });
+
+  it("has no duplicate ids and labels every form control", () => {
+    for (const page of ["index.html", "search/index.html", "docs/api/reference/index.html", "docs/mcp/index.html"]) {
+      const html = read(page);
+      const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+      expect(ids.filter((id, i) => ids.indexOf(id) !== i), page).toEqual([]);
+    }
+    const search = read("search/index.html");
+    for (const input of search.match(/<input\b[^>]*>/g) ?? []) {
+      if (/type="hidden"/.test(input)) continue;
+      expect(/aria-label=|aria-labelledby=|title=/.test(input) || search.includes(`<label`), input).toBe(true);
+    }
+    expect(search).not.toMatch(/<button[^>]*role="switch"/); // switches are native, labelled checkboxes
+  });
+
+  it("serves the product screenshot as AVIF and WebP with a PNG fallback", () => {
+    const home = read("index.html");
+    expect(home).toContain('<source type="image/avif" srcset="/img/search-preview.avif"');
+    expect(home).toContain('<source type="image/webp" srcset="/img/search-preview.webp"');
+    expect(home).toMatch(/<img[^>]+src="\/img\/search-preview\.png"[^>]+width="1280"[^>]+height="800"/);
+    for (const ext of ["avif", "webp", "png"]) expect(existsSync(new URL(`img/search-preview.${ext}`, root))).toBe(true);
+  });
+
+  it("keeps the API playground out of crawls and renders the full reference statically", () => {
+    const robots = read("robots.txt");
+    expect(robots).toMatch(/User-agent: \*\nDisallow: \/v1\/assets\/\*\/download\nDisallow: \/docs\/api\/playground/);
+    expect(robots).not.toContain("Allow: /");
+    expect(read("sitemap-0.xml")).not.toContain("playground");
+    const reference = read("docs/api/reference/index.html");
+    for (const id of ["searchAssets", "getAsset", "selectFiles", "downloadAsset", "listProviders", "mcp"]) expect(reference).toContain(`id="op-${id}"`);
+    for (const schema of ["asset", "assetfile", "searchresponse", "providerreport"]) expect(reference).toContain(`id="schema-${schema}"`);
+    expect(read("docs/api/playground/index.html")).toContain('content="noindex, follow"');
+  });
 });
+

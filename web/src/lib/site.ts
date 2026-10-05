@@ -49,6 +49,7 @@ export const DOCS_NAV = [
       { href: "/docs/mcp", label: "Coding agents & MCP" },
       { href: "/docs/api", label: "REST API guide" },
       { href: "/docs/api/reference", label: "API reference" },
+      { href: "/docs/api/playground", label: "API playground" },
       { href: "/docs/cli", label: "CLI" },
     ],
   },

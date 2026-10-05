@@ -2,7 +2,7 @@
 layout: ../../layouts/DocsLayout.astro
 title: Quick start
 crumb: Docs
-description: Get started with 3D Asset Server in two minutes. Search 17 3D asset sites from the browser, connect Claude Code or Cursor over MCP, or call the REST API with curl.
+description: Get started with 3D Asset Server in two minutes. Search 17 asset sites in the browser, connect Claude Code or Cursor over MCP, or call the REST API.
 ---
 
 # 3D Asset Server quick start

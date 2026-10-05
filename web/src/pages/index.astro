@@ -121,6 +121,34 @@ const typeLinks = [
     </div>
   </section>
 
+  <!-- Product preview -->
+  <section class="mx-auto max-w-6xl px-4 pt-20 sm:px-6" aria-labelledby="preview">
+    <div class="mx-auto max-w-2xl text-center">
+      <p class="text-sm font-medium text-primary">See it in action</p>
+      <h2 id="preview" class="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Every source in one grid, licence on every card</h2>
+    </div>
+    <figure class="mt-10">
+      <div class="overflow-hidden rounded-2xl border bg-card/50 shadow-2xl shadow-primary/10 ring-1 ring-primary/10">
+        <picture>
+          <source type="image/avif" srcset="/img/search-preview.avif" />
+          <source type="image/webp" srcset="/img/search-preview.webp" />
+          <img
+            src="/img/search-preview.png"
+            width="1280"
+            height="800"
+            loading="lazy"
+            decoding="async"
+            alt="3D Asset Server search results for “chair”: CC0 models and materials from Poly Haven and ambientCG, each card showing its source, a Free badge and the CC0 licence, with type filters and source counts above."
+            class="block h-auto w-full"
+          />
+        </picture>
+      </div>
+      <figcaption class="mt-3 text-center text-sm text-muted-foreground">
+        A search for “chair” across Poly Haven, ambientCG and Kenney. <a href="/search?q=chair&providers=polyhaven,ambientcg,kenney&free=true" class="text-primary underline decoration-primary/40 underline-offset-2">Try it yourself</a>.
+      </figcaption>
+    </figure>
+  </section>
+
   <!-- Three ways -->
   <section class="mx-auto max-w-7xl px-4 py-24 sm:px-6" aria-labelledby="ways">
     <div class="mx-auto max-w-2xl text-center">

@@ -10,6 +10,10 @@ import { createApp } from "../src/api/app.js";
 import { PrometheusAnalytics } from "../src/core/analytics.js";
 import { prefersMarkdown } from "../src/api/negotiate.js";
 import { openApiSpec } from "../src/api/openapi.js";
+import { searchMeta } from "../src/api/search-meta.js";
+import { buildCsp, rewriteHead } from "../src/api/site.js";
+import { createHash } from "node:crypto";
+import { brotliDecompressSync } from "node:zlib";
 import { assertPublicUrl, downloadFiles, safeRelative, selectFiles } from "../src/core/download.js";
 import { AssetService } from "../src/core/service.js";
 import { createMcpServer } from "../src/mcp/server.js";
@@ -411,6 +415,94 @@ describe("rate limiting", () => {
     expect(spec.paths["/mcp"]!.post!.responses["429"]).toBeDefined();
     expect(spec.paths["/health"]!.get!.responses["429"]).toBeUndefined();
     expect(spec["x-api-lifecycle"].deprecationPolicy).toContain("/docs/api/versioning");
+  });
+});
+
+describe("site security, compression and SEO variants", () => {
+  const app = createApp(service(), { siteRoot: SITE, publicBaseUrl: "https://3d.shep.bot" });
+  const html = { headers: { accept: "text/html" } };
+
+  it("sends a strict per-page CSP with hashes instead of 'unsafe-inline'", async () => {
+    const res = await app.request("/", html);
+    const csp = res.headers.get("content-security-policy")!;
+    expect(csp).not.toContain("'unsafe-inline'");
+    const hash = (s: string) => `'sha256-${createHash("sha256").update(s).digest("base64")}'`;
+    expect(csp).toContain(`script-src 'self' ${hash('document.documentElement.dataset.ok="1"')}`);
+    expect(csp).toContain(hash("astro-island{display:contents}"));
+    expect(csp).toContain(`'unsafe-hashes' ${hash("color:red")}`);
+    expect(csp).not.toContain(hash('{"@context":"https://schema.org"}')); // JSON-LD is not executable
+    expect(res.headers.get("permissions-policy")).toContain("camera=()");
+    expect(res.headers.get("cross-origin-opener-policy")).toBe("same-origin");
+    expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+  });
+
+  it("builds CSPs for nonces and the inline-style exception", () => {
+    expect(buildCsp("<p></p>", { styleNonce: "abc" })).toContain("style-src 'self' 'nonce-abc'");
+    expect(buildCsp("<p></p>", { inlineStyles: true })).toContain("style-src 'self' 'unsafe-inline'");
+    expect(buildCsp('<script src="/a.js"></script>')).toContain("script-src 'self';");
+    expect(buildCsp('<p style="a:&quot;b&quot;">')).toContain(`'sha256-${createHash("sha256").update('a:"b"').digest("base64")}'`);
+  });
+
+  it("sends HSTS on HTTPS only", async () => {
+    expect((await app.request("/", html)).headers.get("strict-transport-security")).toBe("max-age=31536000; includeSubDomains");
+    const plain = createApp(service(), { siteRoot: SITE });
+    expect((await plain.request("/", html)).headers.get("strict-transport-security")).toBeNull();
+    const proxied = await plain.request("/", { headers: { accept: "text/html", "x-forwarded-proto": "https" } });
+    expect(proxied.headers.get("strict-transport-security")).toContain("max-age=31536000");
+  });
+
+  it("allows CORS on the API and machine-readable files but not on pages", async () => {
+    const origin = { headers: { origin: "https://example.com", accept: "text/html" } };
+    expect((await app.request("/", origin)).headers.get("access-control-allow-origin")).toBeNull();
+    expect((await app.request("/docs/mcp", origin)).headers.get("access-control-allow-origin")).toBeNull();
+    expect((await app.request("/v1/providers", origin)).headers.get("access-control-allow-origin")).toBe("*");
+    expect((await app.request("/llms.txt", origin)).headers.get("access-control-allow-origin")).toBe("*");
+    expect((await app.request("/AGENTS.md", origin)).headers.get("access-control-allow-origin")).toBe("*");
+  });
+
+  it("serves Brotli to clients that accept it", async () => {
+    const res = await app.request("/", { headers: { accept: "text/html", "accept-encoding": "gzip, br" } });
+    expect(res.headers.get("content-encoding")).toBe("br");
+    expect(res.headers.get("vary")).toContain("Accept-Encoding");
+    expect(brotliDecompressSync(Buffer.from(await res.arrayBuffer())).toString()).toContain("<h1");
+    const identity = await app.request("/", html);
+    expect(identity.headers.get("content-encoding")).not.toBe("br");
+  });
+
+  it("caches unhashed static files for a day and fingerprinted assets forever", async () => {
+    expect((await app.request("/llms.txt")).headers.get("cache-control")).toBe("public, max-age=86400");
+    expect((await app.request("/_astro/app.abc123.js")).headers.get("cache-control")).toContain("immutable");
+    expect((await app.request("/", html)).headers.get("cache-control")).toContain("max-age=0");
+  });
+
+  it("gives /search query variants unique, noindex metadata and a style nonce", async () => {
+    const res = await app.request("/search?q=brick%20wall&type=material", html);
+    const body = await res.text();
+    expect(body).toContain("<title>“brick wall”: PBR materials · 3D Asset Server</title>");
+    expect(body).toContain('<meta name="robots" content="noindex, follow">');
+    expect(body).toContain('<meta property="og:title" content="“brick wall”: PBR materials · 3D Asset Server">');
+    const nonce = body.match(/<meta property="csp-nonce" content="([^"]+)">/)![1]!;
+    expect(res.headers.get("content-security-policy")).toContain(`'nonce-${nonce}'`);
+    expect(res.headers.get("etag")).toBeNull();
+    const other = await (await app.request("/search?type=hdri&free=true", html)).text();
+    expect(other).toContain("<title>Free HDRIs: search 17 sites · 3D Asset Server</title>");
+    const plain = await (await app.request("/search", html)).text();
+    expect(plain).toContain("<title>Search free 3D models, textures &amp; HDRIs · 3D Asset Server</title>");
+    expect(plain).toContain('content="index, follow"');
+    const again = await (await app.request("/search", html)).text();
+    expect(again.match(/csp-nonce" content="([^"]+)"/)![1]).not.toBe(plain.match(/csp-nonce" content="([^"]+)"/)![1]);
+  });
+
+  it("only relaxes inline styles for the API playground", async () => {
+    expect((await app.request("/docs/api/playground", html)).headers.get("content-security-policy")).toContain("style-src 'self' 'unsafe-inline'");
+    expect((await app.request("/docs/mcp", html)).headers.get("content-security-policy")).not.toContain("'unsafe-inline'");
+  });
+
+  it("builds search metadata and escapes it into the head", () => {
+    expect(searchMeta(new URLSearchParams(""))).toBeUndefined();
+    expect(searchMeta(new URLSearchParams("type=pack&free=true"))!.title).toBe("Free game asset packs: search 17 sites · 3D Asset Server");
+    const out = rewriteHead('<title>x</title><meta name="description" content="y">', { title: '<b>"t"</b>', description: "d & e" });
+    expect(out).toBe('<title>&lt;b&gt;&quot;t&quot;&lt;/b&gt;</title><meta name="description" content="d &amp; e">');
   });
 });
 
