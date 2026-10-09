@@ -159,9 +159,24 @@
       "access": "api",
       "addedAt": "2026-10-07",
       "addedBy": "agent"
+    },
+    {
+      "id": "opengameart",
+      "name": "OpenGameArt",
+      "homepage": "https://opengameart.org",
+      "access": "scrape",
+      "addedAt": "2026-10-09",
+      "addedBy": "agent"
     }
   ],
   "rejected": [
+    {
+      "name": "PolyScan",
+      "homepage": "https://polyscann.com",
+      "checkedAt": "2026-10-09",
+      "reason": "only about 214 assets, listings do not say model or texture, extra pages load through an undocumented script, and downloads sit behind an ad-block check",
+      "recheckAfter": "2027-01-07"
+    },
     {
       "name": "Mixos",
       "homepage": "https://www.mixos.io",

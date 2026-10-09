@@ -213,6 +213,21 @@
     "supportsDownload": true
   },
   {
+    "id": "opengameart",
+    "name": "OpenGameArt",
+    "homepage": "https://opengameart.org",
+    "description": "Community game art: thousands of free 3D models, textures and 2D sprites/tilesets, each with its own licence (mostly CC0 and CC-BY).",
+    "assetTypes": [
+      "model",
+      "texture",
+      "sprite"
+    ],
+    "access": "scrape",
+    "pricing": "free",
+    "license": null,
+    "supportsDownload": true
+  },
+  {
     "id": "texturescom",
     "name": "Textures.com",
     "homepage": "https://www.textures.com",
