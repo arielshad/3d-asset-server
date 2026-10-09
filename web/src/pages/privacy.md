@@ -19,7 +19,7 @@ schemaType: WebPage
 
 ## If you run it yourself
 
-When you run 3D Asset Server on your own machine or server (`npx 3d-asset-server`, the Docker image, or as an MCP server in Claude, Cursor and similar tools), it sends anonymous usage telemetry to our Umami at stats.shep.bot by default, and says so in its startup output:
+When you run 3D Asset Server on your own machine or server (from source, with the `ghcr.io/arielshad/3d-asset-server` Docker image, or as a local MCP server in Claude, Cursor and similar tools), it sends anonymous usage telemetry to our Umami at stats.shep.bot by default, and says so in its startup output:
 
 - **Usage events:** one per search, asset lookup, download and MCP tool call, plus one when it starts. Each contains only fixed labels: the interface used (website, API or MCP), the client family (for example "claude-code"), the source site, the asset-type filter, whether anything was found, the outcome, the version and your operating system.
 - **Page views of the bundled website:** the page path and title, screen size, browser and language. Your host name is replaced with "self-hosted" and no referrer is sent.

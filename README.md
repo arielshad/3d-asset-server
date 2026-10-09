@@ -105,12 +105,13 @@ node dist/cli.js mcp         # MCP over stdio, for Claude Desktop / Claude Code 
 node dist/cli.js search "low poly tree" --type model --free
 ```
 
-With Docker:
+With Docker, using the published image (no build needed):
 
 ```bash
-docker build -t 3d-asset-server .
-docker run -p 8787:8787 3d-asset-server
+docker run -p 8787:8787 ghcr.io/arielshad/3d-asset-server
 ```
+
+Or build it yourself with `docker build -t 3d-asset-server .`
 
 ---
 
