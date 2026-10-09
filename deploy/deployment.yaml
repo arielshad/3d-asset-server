@@ -62,6 +62,14 @@ spec:
             # which scrapes the port above via servicemonitor.yaml.
             - name: PROMETHEUS_URL
               value: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+            # Cookieless visit counts (referrers, countries, devices) in the
+            # cluster's self-hosted Umami. The website is registered there by
+            # shep-infra (apps/umami/manifests/website-3d-shep-bot-job.yaml);
+            # stats.shep.bot serves only the tracker script and collect endpoint.
+            - name: UMAMI_WEBSITE_ID
+              value: 8f6824cb-f616-4a20-8f5c-79db417038b2
+            - name: UMAMI_HOST
+              value: https://stats.shep.bot
           envFrom:
             - secretRef:
                 name: asset-server-env

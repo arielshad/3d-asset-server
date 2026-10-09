@@ -2,6 +2,7 @@
 import { serve } from "@hono/node-server";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createApp } from "./api/app.js";
+import type { UmamiOptions } from "./api/site.js";
 import { PrometheusAnalytics, noopAnalytics, type Analytics } from "./core/analytics.js";
 import { AssetService } from "./core/service.js";
 import { createMcpServer } from "./mcp/server.js";
@@ -56,6 +57,7 @@ async function main(argv: string[]): Promise<void> {
         allowServerDownloads: process.env.ASSET_SERVER_HTTP_DOWNLOADS === "true",
         downloadDir: process.env.ASSET_DOWNLOAD_DIR,
         prometheus: process.env.PROMETHEUS_URL ? { url: process.env.PROMETHEUS_URL } : undefined,
+        umami: umamiFromEnv(),
       });
       serve({ fetch: app.fetch, port, hostname }, (info) => {
         console.log(`3d-asset-server listening on http://${hostname}:${info.port} (MCP at /mcp)`);
@@ -144,4 +146,17 @@ function startMetrics(hostname: string): Analytics {
     (info) => console.error(`metrics on http://${hostname}:${info.port}/metrics`),
   );
   return analytics;
+}
+
+/**
+ * Website analytics are opt-in: with UMAMI_WEBSITE_ID and UMAMI_HOST set,
+ * every page loads that Umami's tracker. Visits only count on the hostname of
+ * ASSET_SERVER_PUBLIC_URL when it is set.
+ */
+function umamiFromEnv(): UmamiOptions | undefined {
+  const websiteId = process.env.UMAMI_WEBSITE_ID;
+  const host = process.env.UMAMI_HOST;
+  if (!websiteId || !host) return undefined;
+  const publicUrl = process.env.ASSET_SERVER_PUBLIC_URL;
+  return { websiteId, host, domain: publicUrl ? new URL(publicUrl).hostname : undefined };
 }

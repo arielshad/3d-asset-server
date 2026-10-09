@@ -23,7 +23,7 @@ import { openApiSpec } from "./openapi.js";
 import { RATE_LIMIT_HEADERS, rateLimit, type RateLimitOptions } from "./ratelimit.js";
 import { OgImages } from "./og.js";
 import { assetMeta, searchMeta, searchShare, shareableAssetId, type HeadMeta } from "./search-meta.js";
-import { Site, rewriteHead, type ServeOptions } from "./site.js";
+import { Site, rewriteHead, type ServeOptions, type UmamiOptions } from "./site.js";
 
 export interface AppOptions {
   /** Require this key as `Authorization: Bearer <key>` or `x-api-key` on /v1 and /mcp. */
@@ -44,6 +44,8 @@ export interface AppOptions {
    * and 7 days. Without it, /v1/stats counts this process since it started.
    */
   prometheus?: { url: string; fetch?: typeof fetch };
+  /** Add the self-hosted Umami tracker to every page (cookieless visit counts). Off when unset. */
+  umami?: UmamiOptions;
 }
 
 /** Short, guessable URLs for developer resources. */
@@ -150,7 +152,7 @@ export function createApp(service: AssetService, opts: AppOptions = {}): Hono {
   const stats: StatsSource = opts.prometheus
     ? cachedStats(new PrometheusStats({ ...opts.prometheus, fallback: localStats }), 60_000)
     : localStats;
-  const site = Site.load(opts.siteRoot ?? DEFAULT_SITE_ROOT);
+  const site = Site.load(opts.siteRoot ?? DEFAULT_SITE_ROOT, { umami: opts.umami });
   const who = (c: Context): { surface: Surface; client: string } => ({
     surface: c.req.header(WEB_CLIENT_HEADER) === "web" ? "web" : "api",
     client: clientFamily(c.req.header("user-agent")),

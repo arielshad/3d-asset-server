@@ -11,7 +11,7 @@ import { PrometheusAnalytics } from "../src/core/analytics.js";
 import { prefersMarkdown } from "../src/api/negotiate.js";
 import { openApiSpec } from "../src/api/openapi.js";
 import { searchMeta } from "../src/api/search-meta.js";
-import { buildCsp, rewriteHead } from "../src/api/site.js";
+import { buildCsp, rewriteHead, umamiHead } from "../src/api/site.js";
 import { createHash } from "node:crypto";
 import { brotliDecompressSync } from "node:zlib";
 import { assertPublicUrl, downloadFiles, safeRelative, selectFiles } from "../src/core/download.js";
@@ -460,6 +460,48 @@ describe("site security, compression and SEO variants", () => {
     expect(buildCsp("<p></p>", { inlineStyles: true })).toContain("style-src 'self' 'unsafe-inline'");
     expect(buildCsp('<script src="/a.js"></script>')).toContain("script-src 'self';");
     expect(buildCsp('<p style="a:&quot;b&quot;">')).toContain(`'sha256-${createHash("sha256").update('a:"b"').digest("base64")}'`);
+  });
+
+  it("adds the Umami tracker to every page only when configured", async () => {
+    const umami = { websiteId: "8e5f2c1a-3b4d-4e6f-9a0b-1c2d3e4f5a6b", host: "https://stats.example/", domain: "3d.shep.bot" };
+    const tracked = createApp(service(), { siteRoot: SITE, umami });
+    const hash = (s: string) => `'sha256-${createHash("sha256").update(s).digest("base64")}'`;
+    const helper = /<script>([\s\S]*?)<\/script><script defer src="https:\/\/stats\.example\/script\.js"/;
+
+    for (const path of ["/", "/search?q=oak+tree", "/docs/api/playground"]) {
+      const res = await tracked.request(path, html);
+      const body = await res.text();
+      expect(body, path).toContain(
+        '<script defer src="https://stats.example/script.js" data-website-id="8e5f2c1a-3b4d-4e6f-9a0b-1c2d3e4f5a6b" data-domains="3d.shep.bot" data-do-not-track="true" data-before-send="umamiBeforeSend"></script></head>',
+      );
+      const csp = res.headers.get("content-security-policy")!;
+      expect(csp, path).toContain("script-src 'self' https://stats.example ");
+      expect(csp, path).toContain("connect-src 'self' https://stats.example;");
+      expect(csp, path).toContain(hash(helper.exec(body)![1]!));
+    }
+    const off = await app.request("/", html);
+    expect(await off.text()).not.toContain("umami");
+    expect(off.headers.get("content-security-policy")).toContain("connect-src 'self';");
+    // Same file, different markup: the ETag changes so caches refetch.
+    expect((await tracked.request("/", html)).headers.get("etag")).not.toBe(off.headers.get("etag"));
+    expect(() => umamiHead({ ...umami, websiteId: '"><script>' })).toThrow(/UUID/);
+  });
+
+  it("keeps search text out of what the Umami helper lets through", () => {
+    const head = umamiHead({ websiteId: "8e5f2c1a-3b4d-4e6f-9a0b-1c2d3e4f5a6b", host: "https://stats.example" });
+    const code = /<script>([\s\S]*?)<\/script>/.exec(head)![1]!;
+    const win: { umamiBeforeSend?: (type: string, p: Record<string, string>) => Record<string, string> | null } = {};
+    const doc = { addEventListener() {} };
+    new Function("window", "document", "location", code)(win, doc, { href: "https://3d.shep.bot/" });
+    const send = win.umamiBeforeSend!;
+
+    const view = send("event", { url: "https://3d.shep.bot/search?q=oak+tree&utm_source=news#x", title: "“oak tree”: 3D assets", referrer: "https://3d.shep.bot/search?q=crate" });
+    expect(view).toEqual({ url: "https://3d.shep.bot/search?utm_source=news", title: "", referrer: "https://3d.shep.bot/search" });
+    // Search rewrites the query as you type: same path, no second view.
+    expect(send("event", { url: "https://3d.shep.bot/search?q=rock", title: "“rock”" })).toBeNull();
+    expect(send("event", { url: "https://3d.shep.bot/docs", title: "Docs" })).toEqual({ url: "https://3d.shep.bot/docs", title: "Docs" });
+    // Custom events always go through, with the same cleaning.
+    expect(send("event", { name: "outbound", url: "https://3d.shep.bot/search?q=x", title: "“x”" })).toMatchObject({ url: "https://3d.shep.bot/search", title: "" });
   });
 
   it("sends HSTS on HTTPS only", async () => {

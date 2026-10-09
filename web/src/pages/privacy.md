@@ -1,7 +1,7 @@
 ---
 layout: ../layouts/PageLayout.astro
 title: Privacy
-description: What 3D Asset Server records (search terms without IP addresses, aggregate metrics), what stays in your browser, and which third parties you contact.
+description: What 3D Asset Server records (search terms without IP addresses, aggregate metrics, cookieless visit counts), what stays in your browser, and which third parties you contact.
 schemaType: WebPage
 ---
 
@@ -14,6 +14,7 @@ schemaType: WebPage
 - **Search events.** For each search the server logs the search text, the asset-type filters, the number of results, which interface was used (website, API or MCP) and a coarse client family derived from the User-Agent (for example "browser", "curl" or "claude-code"). It does **not** log your IP address, API key or cookies with these events. They are used to improve ranking, to find searches that return nothing and to choose topics for the [asset collections](/assets), and are deleted after 14 days. Only search terms used at least three times in a week are considered for a collection topic, and a collection page never shows who searched or how often.
 - **Aggregate metrics.** Counters such as searches per minute, downloads per source, page views per page and per-source error rates. They contain no search text and no personal data, and are kept for 10 days. Their totals are public on the [usage statistics](/stats) page.
 - **Request logs.** Like any website, the hosting infrastructure keeps standard request logs (which include IP addresses and User-Agents) for security and operations. Logs collected centrally are deleted after 14 days.
+- **Website visit counts.** The website loads a small script from stats.shep.bot, our own self-hosted [Umami](https://umami.is) analytics (nothing goes to Google or another analytics company). For each page view it records the page address, the site you came from, your browser, operating system, device type, screen size, language and an approximate location (country, region and city) looked up from your IP address. It also counts clicks on links to other sites by their domain only. It never sends what you search for: only campaign tags (`utm_*`) are kept from page addresses. It sets no cookies and stores nothing in your browser. Your IP address is not stored; it is combined with your browser details into a one-way hash, which changes every month, so repeat visits can be counted. If your browser sends Do Not Track, the script sends nothing, and blocking stats.shep.bot turns it off without breaking the site. The API and MCP server do not use it.
 - **Rate limiting.** To keep the free service fair, the server counts requests per client IP address in memory for one minute at a time. These counters are never written to disk.
 
 ## What stays in your browser

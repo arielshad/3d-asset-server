@@ -359,6 +359,8 @@ Safety:
 | `ASSET_SERVER_RATE_LIMIT_WINDOW` | `60` | Rate-limit window in seconds |
 | `METRICS_PORT` | – | Serve Prometheus metrics on this port at `/metrics` and log one JSON line per search, download and MCP tool call (see below) |
 | `PROMETHEUS_URL` | – | Prometheus that scrapes `METRICS_PORT`. `/v1/stats` (and the `/stats` page) then report the last 24 hours and 7 days across replicas; without it they count this process since it started |
+| `UMAMI_WEBSITE_ID` | – | With `UMAMI_HOST`: add a self-hosted [Umami](https://umami.is) tracker to every web page (cookieless visit counts; honours Do Not Track; only `utm_*` query parameters are sent, never search text). The page CSP allows that one origin |
+| `UMAMI_HOST` | – | Origin serving the Umami tracker (`/script.js`) and its collect endpoint (`/api/send`) |
 
 > If you set `ASSET_SERVER_API_KEY` on a public server, note that `?api_key=` (used by the web UI's
 > download button) can end up in browser history and server logs.
