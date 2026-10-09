@@ -42,7 +42,7 @@ const CHIPS = {
   "/docs/api/reference": ["OpenAPI 3.1", "Schemas", "curl"],
   "/docs/api/playground": ["Try it live", "OpenAPI 3.1"],
   "/docs/api/versioning": ["/v1", "RateLimit headers", "Deprecation"],
-  "/docs/cli": ["npx", "stdio MCP", "Docker"],
+  "/docs/cli": ["CLI", "stdio MCP", "Docker"],
   "/docs/self-hosting": ["Docker", "Kubernetes", "Prometheus"],
   "/stats": ["Assets by type", "Every source", "Live usage"],
 };
