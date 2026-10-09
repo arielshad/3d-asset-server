@@ -7,7 +7,7 @@
     ],
     "free": true
   },
-  "updatedAt": "2026-10-07T09:05:44.026Z",
+  "updatedAt": "2026-10-09T11:31:00.997Z",
   "assets": [
     {
       "id": "polyhaven:belfast_sunset_puresky",
@@ -375,27 +375,6 @@
       "maxResolution": "16k"
     },
     {
-      "id": "blenderkit:5c99ca95-ff6c-4569-9c3b-da9df957ec30",
-      "provider": "blenderkit",
-      "title": "Sunset",
-      "type": "hdri",
-      "url": "https://www.blendkit.com/asset-gallery-detail/5c99ca95-ff6c-4569-9c3b-da9df957ec30/",
-      "thumbnailUrl": "https://public.blenderkit.com/thumbnails/assets/e6391fd65c284042927548f44afdda09/files/thumbnail_5544c9d6-3366-4195-9ce4-0fbc1b7502fa.jpg.512x512_q85_crop-%2C.jpg",
-      "downloadable": true,
-      "author": "Free poly",
-      "license": {
-        "name": "CC0",
-        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-        "commercialUse": true,
-        "attributionRequired": false
-      },
-      "free": true,
-      "formats": [
-        "exr"
-      ],
-      "maxResolution": "8k"
-    },
-    {
       "id": "ambientcg:EveningSkyHDRI022B",
       "provider": "ambientcg",
       "title": "Evening Sky HDRI 022 B",
@@ -751,6 +730,26 @@
         "exr"
       ],
       "maxResolution": "16k"
+    },
+    {
+      "id": "hdrmaps:jawornik-before-the-sunset",
+      "provider": "hdrmaps",
+      "title": "Jawornik Before the Sunset",
+      "type": "hdri",
+      "url": "https://hdrmaps.com/freebies/jawornik-before-the-sunset/",
+      "thumbnailUrl": "https://hdrmaps.com/wp-content/uploads/2025/10/free_hdr_197_meadow_sunset-560x280.jpg",
+      "downloadable": true,
+      "license": {
+        "name": "Royalty Free",
+        "url": "https://hdrmaps.com/terms-of-use/",
+        "commercialUse": true,
+        "attributionRequired": false
+      },
+      "free": true,
+      "formats": [
+        "exr"
+      ],
+      "maxResolution": "10k"
     }
   ]
 }
