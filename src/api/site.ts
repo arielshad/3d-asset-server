@@ -9,6 +9,9 @@
  * 'unsafe-inline', it lists the SHA-256 hash of every inline script, <style>
  * block and style="" attribute the page actually contains. Text files are
  * served Brotli-compressed when the client accepts it.
+ *
+ * With `umami` set, every page also gets the self-hosted Umami tracker (see
+ * umamiHead); its origin is the one addition to script-src and connect-src.
  */
 
 import { createHash } from "node:crypto";
@@ -69,7 +72,7 @@ const EXECUTABLE_SCRIPT = /^(|module|text\/javascript|application\/javascript)$/
  * via 'unsafe-hashes'. Thumbnails may come from any https host (search results
  * span many asset sites); everything else is same-origin.
  */
-export function buildCsp(html: string, opts: { styleNonce?: string; inlineStyles?: boolean } = {}): string {
+export function buildCsp(html: string, opts: { styleNonce?: string; inlineStyles?: boolean; analyticsOrigin?: string } = {}): string {
   const scripts = new Set<string>();
   for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     const attrs = m[1] ?? "";
@@ -82,7 +85,7 @@ export function buildCsp(html: string, opts: { styleNonce?: string; inlineStyles
   const attrs = new Set<string>();
   for (const m of html.matchAll(/\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) attrs.add(sha256(decodeEntities(m[1] ?? m[2] ?? "")));
 
-  const scriptSrc = ["'self'", ...scripts];
+  const scriptSrc = ["'self'", ...(opts.analyticsOrigin ? [opts.analyticsOrigin] : []), ...scripts];
   // `inlineStyles` is for third-party apps that inject styles at runtime (the
   // Scalar API playground); content pages always use hashes/nonces.
   const styleSrc = opts.inlineStyles
@@ -95,7 +98,7 @@ export function buildCsp(html: string, opts: { styleNonce?: string; inlineStyles
     `style-src ${styleSrc.join(" ")}`,
     "img-src 'self' https: data:",
     "font-src 'self' data:",
-    "connect-src 'self'",
+    `connect-src 'self'${opts.analyticsOrigin ? ` ${opts.analyticsOrigin}` : ""}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "frame-ancestors 'none'",
@@ -103,6 +106,87 @@ export function buildCsp(html: string, opts: { styleNonce?: string; inlineStyles
     "form-action 'self'",
     "object-src 'none'",
   ].join("; ");
+}
+
+/** Self-hosted Umami (cookieless page views). Off unless configured; see the privacy page. */
+export interface UmamiOptions {
+  /** The Umami website ID. */
+  websiteId: string;
+  /** Origin serving the tracker (/script.js) and its collect endpoint (/api/send). */
+  host: string;
+  /** Count visits on this hostname only, so copies of the site elsewhere send nothing. */
+  domain?: string;
+  /**
+   * Telemetry from someone else's install: report the hostname as
+   * "self-hosted", send the path only and no referrer, so internal host names
+   * and intranet URLs stay on their network.
+   */
+  anonymous?: boolean;
+}
+
+/**
+ * Runs before the tracker loads. Before anything reaches Umami it keeps only
+ * utm_* query parameters, and blanks the title of any page whose address had
+ * others (search pages put the query in their title), so search text never
+ * leaves the page. It counts one view per path (search rewrites the query as
+ * you type). Clicks on links to other sites are recorded by domain only.
+ * With `anonymous`, see UmamiOptions.
+ */
+const umamiHelper = (anonymous: boolean) => `(() => {
+  const anonymous = ${anonymous};
+  let stripped = false;
+  const clean = (u) => {
+    try {
+      const x = new URL(u, location.href);
+      for (const k of [...x.searchParams.keys()]) {
+        if (!k.startsWith("utm_")) {
+          x.searchParams.delete(k);
+          stripped = true;
+        }
+      }
+      x.hash = "";
+      return x.toString();
+    } catch {
+      stripped = true;
+      return "";
+    }
+  };
+  let last;
+  window.umamiBeforeSend = (type, p) => {
+    if (type !== "event") return p;
+    stripped = false;
+    p.url = clean(p.url);
+    if (stripped) p.title = "";
+    if (p.referrer) p.referrer = clean(p.referrer);
+    if (anonymous) {
+      p.hostname = "self-hosted";
+      p.url = new URL(p.url || "/", location.href).pathname;
+      p.referrer = "";
+    }
+    if (!p.name) {
+      const path = new URL(p.url, location.href).pathname;
+      if (path === last) return null;
+      last = path;
+    }
+    return p;
+  };
+  document.addEventListener("click", (e) => {
+    const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
+    if (!a) return;
+    const u = new URL(a.href, location.href);
+    if (u.origin !== location.origin && /^https?:$/.test(u.protocol)) window.umami?.track("outbound", { domain: u.hostname });
+  }, { capture: true });
+})();`;
+
+/** The tags added before </head> on every page. Honours Do Not Track. */
+export function umamiHead(opts: UmamiOptions): string {
+  if (!/^[0-9a-f-]{36}$/i.test(opts.websiteId)) throw new Error(`UMAMI_WEBSITE_ID is not a UUID: ${opts.websiteId}`);
+  const origin = new URL(opts.host).origin;
+  const domains = opts.domain ? ` data-domains="${escapeHtml(opts.domain)}"` : "";
+  return (
+    `<script>${umamiHelper(Boolean(opts.anonymous))}</script>` +
+    `<script defer src="${origin}/script.js" data-website-id="${opts.websiteId}"${domains} data-do-not-track="true" data-before-send="umamiBeforeSend"></script>`
+  );
 }
 
 const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -166,8 +250,20 @@ export class Site {
   /** Lower-cased path -> real path, so /agents.md finds /AGENTS.md. */
   private readonly folded = new Map<string, string>();
   private readonly notFound?: Entry;
+  /** Extra <head> markup for every page (the Umami tags), and its origin for the CSP. */
+  private readonly head: string = "";
+  private readonly analyticsOrigin?: string;
 
-  private constructor(private readonly root: string) {
+  private constructor(
+    private readonly root: string,
+    opts: { umami?: UmamiOptions } = {},
+  ) {
+    if (opts.umami) {
+      this.head = umamiHead(opts.umami);
+      this.analyticsOrigin = new URL(opts.umami.host).origin;
+    }
+    // Pages change with the injected markup, so their ETags must too.
+    const pageTag = this.head ? `-${createHash("sha256").update(this.head).digest("hex").slice(0, 8)}` : "";
     for (const file of walk(root)) {
       const rel = "/" + relative(root, file).split(sep).join("/");
       const st = statSync(file);
@@ -176,11 +272,12 @@ export class Site {
         type: MIME[extname(file).toLowerCase()] ?? "application/octet-stream",
         etag: `W/"${st.size.toString(16)}-${Math.floor(st.mtimeMs).toString(16)}"`,
       };
+      const page = { ...entry, etag: entry.etag.replace(/"$/, `${pageTag}"`) };
       if (rel.endsWith("/index.html")) {
         const route = rel.slice(0, -"/index.html".length) || "/";
-        this.files.set(route, { ...entry, page: route });
+        this.files.set(route, { ...page, page: route });
       } else if (rel === "/404.html") {
-        this.notFound = { ...entry, page: "404" };
+        this.notFound = { ...page, page: "404" };
       } else {
         this.files.set(rel, entry);
       }
@@ -236,13 +333,13 @@ export class Site {
   }
 
   /** Load the site, or undefined when it was not built (e.g. running from source without web/dist). */
-  static load(root: string): Site | undefined {
+  static load(root: string, opts: { umami?: UmamiOptions } = {}): Site | undefined {
     try {
       if (!statSync(root).isDirectory()) return undefined;
     } catch {
       return undefined;
     }
-    const site = new Site(root);
+    const site = new Site(root, opts);
     return site.files.has("/") ? site : undefined;
   }
 
@@ -273,7 +370,7 @@ export class Site {
   }
 
   private serve(entry: Entry, status: number, opts: ServeOptions): SiteFile {
-    entry.body ??= readFileSync(entry.file);
+    entry.body ??= entry.page && this.head ? this.withHead(readFileSync(entry.file)) : readFileSync(entry.file);
     const headers: Record<string, string> = {
       "content-type": entry.type,
       etag: entry.etag,
@@ -291,11 +388,15 @@ export class Site {
       if (rewritten) {
         dynamic = true;
         body = Buffer.from(rewritten.html);
-        headers["content-security-policy"] = buildCsp(rewritten.html, { styleNonce: rewritten.styleNonce, inlineStyles: rewritten.inlineStyles });
+        headers["content-security-policy"] = buildCsp(rewritten.html, {
+          styleNonce: rewritten.styleNonce,
+          inlineStyles: rewritten.inlineStyles,
+          analyticsOrigin: this.analyticsOrigin,
+        });
         headers["cache-control"] = "private, no-cache";
         delete headers.etag;
       } else {
-        entry.csp ??= buildCsp(body.toString("utf8"));
+        entry.csp ??= buildCsp(body.toString("utf8"), { analyticsOrigin: this.analyticsOrigin });
         headers["content-security-policy"] = entry.csp;
       }
     }
@@ -313,6 +414,12 @@ export class Site {
       }
     }
     return { status, body, headers, page: entry.page };
+  }
+
+  private withHead(html: Buffer): Buffer {
+    const s = html.toString("utf8");
+    const at = s.search(/<\/head>/i);
+    return at < 0 ? html : Buffer.from(s.slice(0, at) + this.head + s.slice(at));
   }
 }
 

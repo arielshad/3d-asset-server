@@ -26,7 +26,7 @@ export interface McpOptions {
   client?: string;
 }
 
-const VERSION = "0.1.0";
+export const VERSION = "0.1.0";
 
 const typeEnum = z.enum(ASSET_TYPES);
 
