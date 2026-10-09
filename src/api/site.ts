@@ -116,6 +116,12 @@ export interface UmamiOptions {
   host: string;
   /** Count visits on this hostname only, so copies of the site elsewhere send nothing. */
   domain?: string;
+  /**
+   * Telemetry from someone else's install: report the hostname as
+   * "self-hosted", send the path only and no referrer, so internal host names
+   * and intranet URLs stay on their network.
+   */
+  anonymous?: boolean;
 }
 
 /**
@@ -124,8 +130,10 @@ export interface UmamiOptions {
  * others (search pages put the query in their title), so search text never
  * leaves the page. It counts one view per path (search rewrites the query as
  * you type). Clicks on links to other sites are recorded by domain only.
+ * With `anonymous`, see UmamiOptions.
  */
-const UMAMI_HELPER = `(() => {
+const umamiHelper = (anonymous: boolean) => `(() => {
+  const anonymous = ${anonymous};
   let stripped = false;
   const clean = (u) => {
     try {
@@ -150,6 +158,11 @@ const UMAMI_HELPER = `(() => {
     p.url = clean(p.url);
     if (stripped) p.title = "";
     if (p.referrer) p.referrer = clean(p.referrer);
+    if (anonymous) {
+      p.hostname = "self-hosted";
+      p.url = new URL(p.url || "/", location.href).pathname;
+      p.referrer = "";
+    }
     if (!p.name) {
       const path = new URL(p.url, location.href).pathname;
       if (path === last) return null;
@@ -171,7 +184,7 @@ export function umamiHead(opts: UmamiOptions): string {
   const origin = new URL(opts.host).origin;
   const domains = opts.domain ? ` data-domains="${escapeHtml(opts.domain)}"` : "";
   return (
-    `<script>${UMAMI_HELPER}</script>` +
+    `<script>${umamiHelper(Boolean(opts.anonymous))}</script>` +
     `<script defer src="${origin}/script.js" data-website-id="${opts.websiteId}"${domains} data-do-not-track="true" data-before-send="umamiBeforeSend"></script>`
   );
 }

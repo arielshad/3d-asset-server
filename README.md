@@ -359,7 +359,9 @@ Safety:
 | `ASSET_SERVER_RATE_LIMIT_WINDOW` | `60` | Rate-limit window in seconds |
 | `METRICS_PORT` | – | Serve Prometheus metrics on this port at `/metrics` and log one JSON line per search, download and MCP tool call (see below) |
 | `PROMETHEUS_URL` | – | Prometheus that scrapes `METRICS_PORT`. `/v1/stats` (and the `/stats` page) then report the last 24 hours and 7 days across replicas; without it they count this process since it started |
-| `UMAMI_WEBSITE_ID` | – | With `UMAMI_HOST`: add a self-hosted [Umami](https://umami.is) tracker to every web page (cookieless visit counts; honours Do Not Track; only `utm_*` query parameters are sent, never search text). The page CSP allows that one origin |
+| `ASSET_SERVER_TELEMETRY` | on | `0` (or `false`/`off`) turns off anonymous usage telemetry; see [Telemetry](#telemetry) |
+| `DO_NOT_TRACK` | – | `1` also turns telemetry off |
+| `UMAMI_WEBSITE_ID` | – | With `UMAMI_HOST`: send web page views to your own [Umami](https://umami.is) instead (cookieless; honours Do Not Track; only `utm_*` query parameters are sent, never search text). The page CSP allows that one origin |
 | `UMAMI_HOST` | – | Origin serving the Umami tracker (`/script.js`) and its collect endpoint (`/api/send`) |
 
 > If you set `ASSET_SERVER_API_KEY` on a public server, note that `?api_key=` (used by the web UI's
@@ -387,6 +389,24 @@ collects the event lines, and the *3D Asset Server* Grafana dashboard shows both
 The public [/stats](https://3d.shep.bot/stats) page reads the same counters back through `GET /v1/stats`
 ([`src/core/stats.ts`](src/core/stats.ts)): from Prometheus when `PROMETHEUS_URL` is set (cached for a
 minute), otherwise from in-process tallies since the last restart. It shows aggregate counts only.
+
+### Telemetry
+
+`serve` and `mcp` send anonymous usage telemetry by default, so we can see how the project is used
+outside 3d.shep.bot. It goes to the project's self-hosted [Umami](https://umami.is) at `stats.shep.bot`
+([`src/core/telemetry.ts`](src/core/telemetry.ts)), and the server prints a one-line notice to stderr
+when it starts.
+
+- **Events:** one per search, asset lookup, download and MCP tool call, plus one at start. Each carries
+  only bounded labels: interface (`web`, `api`, `mcp`), client family (`claude-code`, `cursor`, …),
+  source, asset-type filter, whether anything was found, outcome, version, mode and OS.
+- **Web UI page views,** when you open the bundled website: page path and title, screen size, browser
+  and language. The host name is reported as `self-hosted`, and no referrer is sent.
+- **Never sent:** search text, asset IDs, file paths, URLs, API keys or your machine's name. Umami
+  derives a country from your IP address and does not store the address. No cookies.
+
+Turn it off with `ASSET_SERVER_TELEMETRY=0` or `DO_NOT_TRACK=1`. Sending never blocks a request, and the
+process stops trying after a few failures in a row (for example when offline).
 
 ### Catalog census
 

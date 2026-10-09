@@ -17,6 +17,16 @@ schemaType: WebPage
 - **Website visit counts.** The website loads a small script from stats.shep.bot, our own self-hosted [Umami](https://umami.is) analytics (nothing goes to Google or another analytics company). For each page view it records the page address, the site you came from, your browser, operating system, device type, screen size, language and an approximate location (country, region and city) looked up from your IP address. It also counts clicks on links to other sites by their domain only. It never sends what you search for: only campaign tags (`utm_*`) are kept from page addresses. It sets no cookies and stores nothing in your browser. Your IP address is not stored; it is combined with your browser details into a one-way hash, which changes every month, so repeat visits can be counted. If your browser sends Do Not Track, the script sends nothing, and blocking stats.shep.bot turns it off without breaking the site. The API and MCP server do not use it.
 - **Rate limiting.** To keep the free service fair, the server counts requests per client IP address in memory for one minute at a time. These counters are never written to disk.
 
+## If you run it yourself
+
+When you run 3D Asset Server on your own machine or server (`npx 3d-asset-server`, the Docker image, or as an MCP server in Claude, Cursor and similar tools), it sends anonymous usage telemetry to our Umami at stats.shep.bot by default, and says so in its startup output:
+
+- **Usage events:** one per search, asset lookup, download and MCP tool call, plus one when it starts. Each contains only fixed labels: the interface used (website, API or MCP), the client family (for example "claude-code"), the source site, the asset-type filter, whether anything was found, the outcome, the version and your operating system.
+- **Page views of the bundled website:** the page path and title, screen size, browser and language. Your host name is replaced with "self-hosted" and no referrer is sent.
+- **Never sent:** what you search for, asset IDs, file paths, URLs, API keys or your machine's name. Umami looks up a country from your IP address and does not store the address. No cookies are used.
+
+To turn it off, set the environment variable `ASSET_SERVER_TELEMETRY=0` (or `DO_NOT_TRACK=1`) before starting it.
+
 ## What stays in your browser
 
 The website stores two optional preferences in your browser's local storage: your light/dark theme choice and, only on self-hosted servers that require one, the API key you entered. Neither is sent anywhere except the API key, which goes back to the same server.

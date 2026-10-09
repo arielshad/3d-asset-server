@@ -70,6 +70,10 @@ spec:
               value: 8f6824cb-f616-4a20-8f5c-79db417038b2
             - name: UMAMI_HOST
               value: https://stats.shep.bot
+            # The built-in install telemetry is for local and self-hosted
+            # copies; this instance is measured by the metrics above instead.
+            - name: ASSET_SERVER_TELEMETRY
+              value: "0"
           envFrom:
             - secretRef:
                 name: asset-server-env

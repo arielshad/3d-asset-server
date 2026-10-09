@@ -5,7 +5,9 @@ import { createApp } from "./api/app.js";
 import type { UmamiOptions } from "./api/site.js";
 import { PrometheusAnalytics, noopAnalytics, type Analytics } from "./core/analytics.js";
 import { AssetService } from "./core/service.js";
-import { createMcpServer } from "./mcp/server.js";
+import { teeAnalytics } from "./core/stats.js";
+import { TELEMETRY_HOST, TELEMETRY_NOTICE, TELEMETRY_WEBSITE_ID, UmamiTelemetry, telemetryDisabled } from "./core/telemetry.js";
+import { VERSION, createMcpServer } from "./mcp/server.js";
 import { allProviders } from "./providers/index.js";
 
 const HELP = `3d-asset-server — search & download 3D assets from many sources
@@ -30,6 +32,10 @@ Environment:
                                one JSON line per search/download/tool call (off when unset)
   PROMETHEUS_URL               Prometheus that scrapes METRICS_PORT; /v1/stats then reports
                                the last 24 hours and 7 days (default: counts since start)
+  ASSET_SERVER_TELEMETRY       "0" to turn off anonymous usage telemetry (on by default:
+                               event counts, never search text, paths or keys; see /privacy)
+  DO_NOT_TRACK                 "1" also turns telemetry off
+  UMAMI_WEBSITE_ID, UMAMI_HOST Send web page views to your own Umami instead
 `;
 
 function buildService(): AssetService {
@@ -45,7 +51,8 @@ async function main(argv: string[]): Promise<void> {
       const service = buildService();
       const port = Number(process.env.PORT ?? 8787);
       const hostname = process.env.HOST ?? "0.0.0.0";
-      const analytics = startMetrics(hostname);
+      const telemetry = startTelemetry("http");
+      const analytics = telemetry ? teeAnalytics(startMetrics(hostname), telemetry) : startMetrics(hostname);
       const app = createApp(service, {
         analytics,
         rateLimit: {
@@ -57,7 +64,7 @@ async function main(argv: string[]): Promise<void> {
         allowServerDownloads: process.env.ASSET_SERVER_HTTP_DOWNLOADS === "true",
         downloadDir: process.env.ASSET_DOWNLOAD_DIR,
         prometheus: process.env.PROMETHEUS_URL ? { url: process.env.PROMETHEUS_URL } : undefined,
-        umami: umamiFromEnv(),
+        umami: umamiFromEnv() ?? (telemetry ? { websiteId: TELEMETRY_WEBSITE_ID, host: TELEMETRY_HOST, anonymous: true } : undefined),
       });
       serve({ fetch: app.fetch, port, hostname }, (info) => {
         console.log(`3d-asset-server listening on http://${hostname}:${info.port} (MCP at /mcp)`);
@@ -66,7 +73,9 @@ async function main(argv: string[]): Promise<void> {
     }
     case "mcp": {
       const service = buildService();
+      const telemetry = startTelemetry("stdio");
       const server = createMcpServer(service, {
+        analytics: telemetry,
         allowLocalDownload: true,
         downloadDir: process.env.ASSET_DOWNLOAD_DIR,
         publicBaseUrl: process.env.ASSET_SERVER_PUBLIC_URL,
@@ -149,9 +158,21 @@ function startMetrics(hostname: string): Analytics {
 }
 
 /**
- * Website analytics are opt-in: with UMAMI_WEBSITE_ID and UMAMI_HOST set,
- * every page loads that Umami's tracker. Visits only count on the hostname of
- * ASSET_SERVER_PUBLIC_URL when it is set.
+ * Anonymous usage telemetry (src/core/telemetry.ts), on unless the user opted
+ * out. The notice goes to stderr: in stdio mode stdout is the MCP channel.
+ */
+function startTelemetry(mode: "http" | "stdio"): UmamiTelemetry | undefined {
+  if (telemetryDisabled()) return undefined;
+  console.error(TELEMETRY_NOTICE);
+  const telemetry = new UmamiTelemetry({ version: VERSION, mode });
+  telemetry.started();
+  return telemetry;
+}
+
+/**
+ * Your own web analytics: with UMAMI_WEBSITE_ID and UMAMI_HOST set, every page
+ * loads that Umami's tracker (instead of the telemetry one). Visits only count
+ * on the hostname of ASSET_SERVER_PUBLIC_URL when it is set.
  */
 function umamiFromEnv(): UmamiOptions | undefined {
   const websiteId = process.env.UMAMI_WEBSITE_ID;

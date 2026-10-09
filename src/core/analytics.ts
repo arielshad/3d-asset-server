@@ -75,7 +75,7 @@ export function clientFamily(userAgent: string | undefined): string {
   return "other";
 }
 
-function typeLabel(types?: AssetType[]): string {
+export function typeLabel(types?: AssetType[]): string {
   if (!types?.length) return "any";
   return types.length === 1 ? types[0]! : "multi";
 }
