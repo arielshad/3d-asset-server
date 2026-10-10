@@ -169,6 +169,19 @@
     "supportsDownload": true
   },
   {
+    "id": "sketchfab",
+    "name": "Sketchfab",
+    "homepage": "https://sketchfab.com",
+    "description": "Huge community library of 3D models (scans, props, characters, scenes); we search its CC0 public-domain models. Downloads need a Sketchfab login.",
+    "assetTypes": [
+      "model"
+    ],
+    "access": "api",
+    "pricing": "free",
+    "license": "CC0",
+    "supportsDownload": false
+  },
+  {
     "id": "threedtextures",
     "name": "3DTextures.me",
     "homepage": "https://3dtextures.me",

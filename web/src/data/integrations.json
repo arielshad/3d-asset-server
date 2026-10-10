@@ -1,6 +1,13 @@
 {
   "integrations": [
     {
+      "id": "sketchfab",
+      "name": "Sketchfab",
+      "homepage": "https://sketchfab.com",
+      "addedAt": "2026-10-10",
+      "addedBy": "agent"
+    },
+    {
       "id": "opengameart",
       "name": "OpenGameArt",
       "homepage": "https://opengameart.org",
@@ -148,5 +155,5 @@
       "addedBy": "launch"
     }
   ],
-  "rejected": 4
+  "rejected": 5
 }

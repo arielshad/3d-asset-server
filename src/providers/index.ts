@@ -13,6 +13,7 @@ import { polyfork } from "./polyfork.js";
 import { polyhaven } from "./polyhaven.js";
 import { quaternius } from "./quaternius.js";
 import { sharetextures } from "./sharetextures.js";
+import { sketchfab } from "./sketchfab.js";
 import { texturecan } from "./texturecan.js";
 import { texturescom } from "./texturescom.js";
 import { threedassets } from "./threedassets.js";
@@ -32,6 +33,7 @@ export const allProviders: Provider[] = [
   quaternius,
   polyfork,
   threedassets,
+  sketchfab,
   threedtextures,
   threedtexel,
   texturecan,

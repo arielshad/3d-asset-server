@@ -167,9 +167,24 @@
       "access": "scrape",
       "addedAt": "2026-10-09",
       "addedBy": "agent"
+    },
+    {
+      "id": "sketchfab",
+      "name": "Sketchfab",
+      "homepage": "https://sketchfab.com",
+      "access": "api",
+      "addedAt": "2026-10-10",
+      "addedBy": "agent"
     }
   ],
   "rejected": [
+    {
+      "name": "Poly Pizza",
+      "homepage": "https://poly.pizza",
+      "checkedAt": "2026-10-10",
+      "reason": "every page including robots.txt is behind a Cloudflare JavaScript challenge, so no automated search; most models are CC-BY",
+      "recheckAfter": "2027-01-08"
+    },
     {
       "name": "PolyScan",
       "homepage": "https://polyscann.com",
