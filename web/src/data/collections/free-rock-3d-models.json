@@ -15,7 +15,7 @@
       "preview for"
     ]
   },
-  "updatedAt": "2026-10-08T11:37:04.630Z",
+  "updatedAt": "2026-10-10T10:48:29.504Z",
   "assets": [
     {
       "id": "polyhaven:rock_moss_set_02",
@@ -579,28 +579,6 @@
       "polyCount": 202
     },
     {
-      "id": "blenderkit:ba58c673-2e56-40e8-a489-1ffd88d3e6ad",
-      "provider": "blenderkit",
-      "title": "Rock",
-      "type": "model",
-      "url": "https://www.blendkit.com/asset-gallery-detail/ba58c673-2e56-40e8-a489-1ffd88d3e6ad/",
-      "thumbnailUrl": "https://public.blenderkit.com/thumbnails/assets/578cdbc7d4324e08921905b50931ee52/files/thumbnail_06822209-069d-4872-960f-b0de8e8a48d4.png.512x512_q85_crop-%2C.png",
-      "downloadable": true,
-      "author": "Poly Haven",
-      "license": {
-        "name": "CC0",
-        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-        "commercialUse": true,
-        "attributionRequired": false
-      },
-      "free": true,
-      "formats": [
-        "blend",
-        "glb"
-      ],
-      "maxResolution": "4k"
-    },
-    {
       "id": "sharetextures:rock_4",
       "provider": "sharetextures",
       "title": "Rock 4",
@@ -748,6 +726,16 @@
         "glb"
       ],
       "polyCount": 258
+    },
+    {
+      "id": "opengameart:rock",
+      "provider": "opengameart",
+      "title": "Rock",
+      "type": "model",
+      "url": "https://opengameart.org/content/rock",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/screenshot003.jpg",
+      "downloadable": true,
+      "free": true
     }
   ]
 }

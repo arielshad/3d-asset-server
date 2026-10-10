@@ -7,7 +7,7 @@
     ],
     "free": true
   },
-  "updatedAt": "2026-10-08T11:36:21.676Z",
+  "updatedAt": "2026-10-10T10:47:49.159Z",
   "assets": [
     {
       "id": "kenney:animated-characters-protagonists",
@@ -578,6 +578,46 @@
       ],
       "polyCount": 7840,
       "animated": true
+    },
+    {
+      "id": "opengameart:franck-cosmos-laundromat-animated-game-character",
+      "provider": "opengameart",
+      "title": "Franck (Cosmos Laundromat) - animated game character",
+      "type": "model",
+      "url": "https://opengameart.org/content/franck-cosmos-laundromat-animated-game-character",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/preview_2_5.png",
+      "downloadable": true,
+      "free": true
+    },
+    {
+      "id": "opengameart:animated-characters-1",
+      "provider": "opengameart",
+      "title": "Animated Characters 1",
+      "type": "model",
+      "url": "https://opengameart.org/content/animated-characters-1",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/Sample_70.png",
+      "downloadable": true,
+      "free": true
+    },
+    {
+      "id": "opengameart:animated-characters-2",
+      "provider": "opengameart",
+      "title": "Animated Characters 2",
+      "type": "model",
+      "url": "https://opengameart.org/content/animated-characters-2",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/Preview_306.png",
+      "downloadable": true,
+      "free": true
+    },
+    {
+      "id": "opengameart:low-poly-animated-character",
+      "provider": "opengameart",
+      "title": "Low Poly Animated Character",
+      "type": "model",
+      "url": "https://opengameart.org/content/low-poly-animated-character",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/screenshot_2_4.png",
+      "downloadable": true,
+      "free": true
     }
   ]
 }

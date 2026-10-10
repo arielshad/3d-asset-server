@@ -21,7 +21,7 @@
       "lego"
     ]
   },
-  "updatedAt": "2026-10-08T11:36:26.592Z",
+  "updatedAt": "2026-10-10T10:47:54.753Z",
   "assets": [
     {
       "id": "polyhaven:covered_car",
@@ -481,51 +481,6 @@
       "polyCount": 18168
     },
     {
-      "id": "blenderkit:07c32f87-3caa-4d68-b0f3-1054d3218bca",
-      "provider": "blenderkit",
-      "title": "Mars Rover Car",
-      "type": "model",
-      "url": "https://www.blendkit.com/asset-gallery-detail/07c32f87-3caa-4d68-b0f3-1054d3218bca/",
-      "thumbnailUrl": "https://public.blenderkit.com/thumbnails/assets/7e2ab864e08b4466840406b6b6b7c158/files/thumbnail_48125ceb-2f4c-4b8a-bfe9-6cbe644e2da1.jpg.512x512_q85_crop-%2C.jpg",
-      "downloadable": true,
-      "author": "PKO Studio",
-      "license": {
-        "name": "Royalty Free",
-        "url": "https://www.blendkit.com/docs/licenses/",
-        "commercialUse": true,
-        "attributionRequired": false
-      },
-      "free": true,
-      "formats": [
-        "blend",
-        "glb"
-      ],
-      "maxResolution": "8k",
-      "polyCount": 1169190
-    },
-    {
-      "id": "blenderkit:350c70f5-c808-4a17-9f18-197e3a016150",
-      "provider": "blenderkit",
-      "title": "Lemon Bumper Cars Ride",
-      "type": "model",
-      "url": "https://www.blendkit.com/asset-gallery-detail/350c70f5-c808-4a17-9f18-197e3a016150/",
-      "thumbnailUrl": "https://public.blenderkit.com/thumbnails/assets/bc512a03021a468782caadf74060fb18/files/thumbnail_e0c4a30f-5c11-41b2-8878-4b40a1d46b25.jpg.512x512_q85_crop-%2C.jpg",
-      "downloadable": true,
-      "author": "Professor Franco Difilippo",
-      "license": {
-        "name": "Royalty Free",
-        "url": "https://www.blendkit.com/docs/licenses/",
-        "commercialUse": true,
-        "attributionRequired": false
-      },
-      "free": true,
-      "formats": [
-        "blend"
-      ],
-      "maxResolution": "2k",
-      "polyCount": 774292
-    },
-    {
       "id": "blenderkit:019030bb-74cc-451e-ad66-55ae7dda47ca",
       "provider": "blenderkit",
       "title": "Police Sheriff car",
@@ -547,27 +502,6 @@
       "maxResolution": "2k",
       "polyCount": 38630,
       "rigged": true
-    },
-    {
-      "id": "blenderkit:d7c452bf-0cfa-4e51-bb23-77cb092cb32f",
-      "provider": "blenderkit",
-      "title": "Car Shoot Studio Static and Animated",
-      "type": "model",
-      "url": "https://www.blendkit.com/asset-gallery-detail/d7c452bf-0cfa-4e51-bb23-77cb092cb32f/",
-      "thumbnailUrl": "https://public.blenderkit.com/thumbnails/assets/4905de58043a48e7a6c1ff86ef7006c2/files/thumbnail_9ac2735f-c50f-40cd-8b3a-5e2f584978e8.jpg.512x512_q85_crop-%2C.jpg",
-      "downloadable": true,
-      "author": "Nobody",
-      "license": {
-        "name": "Royalty Free",
-        "url": "https://www.blendkit.com/docs/licenses/",
-        "commercialUse": true,
-        "attributionRequired": false
-      },
-      "free": true,
-      "formats": [
-        "blend"
-      ],
-      "polyCount": 1
     },
     {
       "id": "threedassets:stock-car-oval-speedway-stock-car-damaged-6a429ea6",
@@ -633,6 +567,36 @@
         "glb"
       ],
       "polyCount": 4348
+    },
+    {
+      "id": "opengameart:car-0",
+      "provider": "opengameart",
+      "title": "Car",
+      "type": "model",
+      "url": "https://opengameart.org/content/car-0",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/car_image_1.png",
+      "downloadable": true,
+      "free": true
+    },
+    {
+      "id": "opengameart:rigged-car",
+      "provider": "opengameart",
+      "title": "Rigged Car",
+      "type": "model",
+      "url": "https://opengameart.org/content/rigged-car",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/beautyshot_rigged_car.jpg",
+      "downloadable": true,
+      "free": true
+    },
+    {
+      "id": "opengameart:muscle-car-3d-model",
+      "provider": "opengameart",
+      "title": "Muscle Car 3D Model",
+      "type": "model",
+      "url": "https://opengameart.org/content/muscle-car-3d-model",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/MusclePreview.png",
+      "downloadable": true,
+      "free": true
     }
   ]
 }

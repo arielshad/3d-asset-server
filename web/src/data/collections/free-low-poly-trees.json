@@ -7,7 +7,7 @@
     ],
     "free": true
   },
-  "updatedAt": "2026-10-08T11:36:46.953Z",
+  "updatedAt": "2026-10-10T10:48:14.863Z",
   "assets": [
     {
       "id": "blenderkit:72fac4cb-901c-4a48-8fc8-84a0baa0bd21",
@@ -617,28 +617,6 @@
       "free": true
     },
     {
-      "id": "blenderkit:b702bdff-a1ac-41d7-8bec-2fd6221c4af0",
-      "provider": "blenderkit",
-      "title": "Low Poly Apple Tree",
-      "type": "model",
-      "url": "https://www.blendkit.com/asset-gallery-detail/b702bdff-a1ac-41d7-8bec-2fd6221c4af0/",
-      "thumbnailUrl": "https://public.blenderkit.com/thumbnails/assets/d5a891f1ce2e4d58a5408a9de0296e1f/files/thumbnail_f8cbfb83-3eeb-48e5-93b6-0b8497309697.jpg.512x512_q85_crop-%2C.jpg",
-      "downloadable": true,
-      "author": "Mohammed Hossain",
-      "license": {
-        "name": "Royalty Free",
-        "url": "https://www.blendkit.com/docs/licenses/",
-        "commercialUse": true,
-        "attributionRequired": false
-      },
-      "free": true,
-      "formats": [
-        "blend",
-        "glb"
-      ],
-      "polyCount": 5164
-    },
-    {
       "id": "threedassets:wipe-day-survival-island-pine-tree-dfc88d2b",
       "provider": "threedassets",
       "title": "Pine Tree (Wipe Day Survival Island)",
@@ -658,6 +636,16 @@
         "glb"
       ],
       "polyCount": 132
+    },
+    {
+      "id": "opengameart:low-poly-tree",
+      "provider": "opengameart",
+      "title": "Low Poly Tree",
+      "type": "model",
+      "url": "https://opengameart.org/content/low-poly-tree",
+      "thumbnailUrl": "https://opengameart.org/sites/default/files/styles/thumbnail/public/1_7.jpg",
+      "downloadable": true,
+      "free": true
     }
   ]
 }
