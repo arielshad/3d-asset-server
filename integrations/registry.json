@@ -211,6 +211,25 @@
   ],
   "rejected": [
     {
+      "name": "Innerscene",
+      "homepage": "https://www.innerscene.com",
+      "checkedAt": "2026-10-31",
+      "reason": "robots.txt disallows /tools/library/3d-parts? search URLs with a 3 second crawl-delay; mostly CAD parts and lighting fixtures, not general 3D assets"
+    },
+    {
+      "name": "AssetHoard",
+      "homepage": "https://assethoard.com",
+      "checkedAt": "2026-10-31",
+      "reason": "curated catalogue of only 180 listings that link to Kenney, Quaternius, Poly Haven and itch.io, which we already search; hosts no files"
+    },
+    {
+      "name": "AutoSprite free 3D models",
+      "homepage": "https://www.autosprite.io/free-3d-models",
+      "checkedAt": "2026-10-31",
+      "reason": "only about 20 free glTF models from a sprite/AI generator service, and robots.txt disallows /api/; too small",
+      "recheckAfter": "2027-01-29"
+    },
+    {
       "name": "Chequered Ink",
       "homepage": "https://chequered.ink",
       "checkedAt": "2026-10-30",
