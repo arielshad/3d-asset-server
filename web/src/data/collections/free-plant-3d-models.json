@@ -7,7 +7,7 @@
     ],
     "free": true
   },
-  "updatedAt": "2026-10-29T11:09:57.883Z",
+  "updatedAt": "2026-10-31T10:36:06.126Z",
   "assets": [
     {
       "id": "polyhaven:potted_plant_02",
@@ -706,26 +706,6 @@
       ]
     },
     {
-      "id": "wikimediacommons:0_A.D._ptol_temple_helle_plants.stl",
-      "provider": "wikimediacommons",
-      "title": "0 A.D. ptol temple helle plants",
-      "type": "model",
-      "url": "https://commons.wikimedia.org/wiki/File:0_A.D._ptol_temple_helle_plants.stl",
-      "thumbnailUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/0_A.D._ptol_temple_helle_plants.stl/960px-0_A.D._ptol_temple_helle_plants.stl.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "downloadable": true,
-      "author": "Wildfire Games ( https://wildfiregames.com/ )",
-      "license": {
-        "name": "CC BY-SA 3.0",
-        "url": "https://creativecommons.org/licenses/by-sa/3.0",
-        "commercialUse": true,
-        "attributionRequired": true
-      },
-      "free": true,
-      "formats": [
-        "stl"
-      ]
-    },
-    {
       "id": "polyfork:ti-plant-a7ad06",
       "provider": "polyfork",
       "title": "Ti Plant",
@@ -747,6 +727,26 @@
         "obj"
       ],
       "polyCount": 782
+    },
+    {
+      "id": "scenario:scenario_asset_1f5NR1zs95ZjkjAK9yWpVzzt",
+      "provider": "scenario",
+      "title": "A low wooden bed with white bedding and a leafy green plant",
+      "type": "model",
+      "url": "https://huggingface.co/datasets/scenario-labs/3d-collection/tree/main/assets/scenario_asset_1f5NR1zs95ZjkjAK9yWpVzzt",
+      "thumbnailUrl": "https://huggingface.co/datasets/scenario-labs/3d-collection/resolve/main/assets/scenario_asset_1f5NR1zs95ZjkjAK9yWpVzzt/preview.jpg",
+      "downloadable": true,
+      "author": "Scenario",
+      "license": {
+        "name": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "commercialUse": true,
+        "attributionRequired": true
+      },
+      "free": true,
+      "formats": [
+        "glb"
+      ]
     }
   ]
 }
