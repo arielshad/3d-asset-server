@@ -27,7 +27,7 @@
       "Wood Plant"
     ]
   },
-  "updatedAt": "2026-11-10T12:59:17.193Z",
+  "updatedAt": "2026-11-14T11:45:21.682Z",
   "assets": [
     {
       "id": "blenderkit:264b47f4-a1ee-4c31-9ee9-4c0e8dc1a98b",
@@ -418,29 +418,6 @@
       "free": true
     },
     {
-      "id": "sketchfab:6c4ec0df32f147dcb8e7ebcc6925d0c6",
-      "provider": "sketchfab",
-      "title": "Kilnagappagh - Booley House",
-      "type": "model",
-      "url": "https://sketchfab.com/3d-models/none-6c4ec0df32f147dcb8e7ebcc6925d0c6",
-      "thumbnailUrl": "https://media.sketchfab.com/models/6c4ec0df32f147dcb8e7ebcc6925d0c6/thumbnails/fca6239b5d994b63b0cad14d61b1ffa7/cad25edc49d54af8a748b835cbb0b706.jpeg",
-      "downloadable": false,
-      "author": "Galway3D_DH_AGe",
-      "license": {
-        "name": "CC0",
-        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
-        "commercialUse": true,
-        "attributionRequired": false
-      },
-      "free": true,
-      "formats": [
-        "glb",
-        "gltf",
-        "usdz"
-      ],
-      "polyCount": 310364
-    },
-    {
       "id": "grab3d:gingerbread-house",
       "provider": "grab3d",
       "title": "Gingerbread House",
@@ -635,6 +612,26 @@
         "blend",
         "usdz",
         "obj"
+      ]
+    },
+    {
+      "id": "lazytextures:models:House_02",
+      "provider": "lazytextures",
+      "title": "House 02",
+      "type": "model",
+      "url": "https://www.lazytextures.com/Asset?path=%2FAssets%2FModels%2Farchviz%2FHouse_02&name=House_02",
+      "thumbnailUrl": "https://lazytextures.net:3000/Assets/Models/archviz/House_02/Preview.png",
+      "downloadable": true,
+      "license": {
+        "name": "CC0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "attributionRequired": false
+      },
+      "free": true,
+      "formats": [
+        "fbx",
+        "zip"
       ]
     }
   ]
