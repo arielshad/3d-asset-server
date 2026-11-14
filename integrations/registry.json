@@ -841,6 +841,12 @@
       "homepage": "https://freepbrtextures.com",
       "checkedAt": "2026-11-13",
       "reason": "only about 30 procedurally generated textures, fewer than 50 assets"
+    },
+    {
+      "name": "models.codelove.in",
+      "homepage": "https://models.codelove.in",
+      "checkedAt": "2026-11-14",
+      "reason": "Mostly a re-host of Kenney, KayKit and Quaternius packs we already search or reject; aggregator, not an original catalogue"
     }
   ]
 }
