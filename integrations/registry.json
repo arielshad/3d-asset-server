@@ -227,6 +227,26 @@
   ],
   "rejected": [
     {
+      "name": "CC0 Materials",
+      "homepage": "https://cc0materials.com",
+      "checkedAt": "2026-11-28",
+      "reason": "only 29 materials (fewer than 50); robots.txt disallows /api/download/",
+      "recheckAfter": "2027-02-26"
+    },
+    {
+      "name": "CraftPBR",
+      "homepage": "https://craftpbr.com",
+      "checkedAt": "2026-11-28",
+      "reason": "robots.txt disallows /api/, and the community catalogue renders client-side from that API"
+    },
+    {
+      "name": "ProcTexture",
+      "homepage": "https://proctexture.com",
+      "checkedAt": "2026-11-28",
+      "reason": "procedural pattern generator with about 147 patterns, no clear file downloads, no search or API",
+      "recheckAfter": "2027-02-26"
+    },
+    {
       "name": "Just Create 3D",
       "homepage": "https://justcreate3d.studio",
       "checkedAt": "2026-11-24",
